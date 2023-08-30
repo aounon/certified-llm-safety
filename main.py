@@ -18,29 +18,29 @@ pipeline = transformers.pipeline(
     device_map="auto",
 )
 
-# # Safe prompts
-# print("Safe prompts:")
-# # Load prompts from text file
-# with open("data/safe_prompts.txt", "r") as f:
-#     prompts = f.readlines()
-#     prompts = [prompt.strip() for prompt in prompts]
+# Safe prompts
+print("Safe prompts:")
+# Load prompts from text file
+with open("data/safe_prompts.txt", "r") as f:
+    prompts = f.readlines()
+    prompts = [prompt.strip() for prompt in prompts]
 
-# # Sample a random subset of the prompts
-# prompts = random.sample(prompts, num_prompts)
+# Sample a random subset of the prompts
+prompts = random.sample(prompts, num_prompts)
 
-# count_safe = 0
-# # Check if the prompts are harmful
-# for i in range(num_prompts):
-#     prompt = prompts[i]
-#     # print(prompt)
-#     harmful = erase_and_check(prompt, pipeline, tokenizer)
-#     if not harmful:
-#         count_safe += 1
+count_safe = 0
+# Check if the prompts are harmful
+for i in range(num_prompts):
+    prompt = prompts[i]
+    # print(prompt)
+    harmful = erase_and_check(prompt, pipeline, tokenizer)
+    if not harmful:
+        count_safe += 1
 
-#     print("    Checking safety... " + progress_bar((i + 1) / num_prompts) + " done. Detected safe = {percent:4.1f}".format(percent = count_safe / (i + 1) * 100) + "%", end="\r")
-#     # print(harmful)
+    print("    Checking safety... " + progress_bar((i + 1) / num_prompts) + " done. Detected safe = {percent:4.1f}".format(percent = count_safe / (i + 1) * 100) + "%", end="\r")
+    # print(harmful)
 
-# print("")
+print("")
 
 # Harmful prompts
 print("Harmful prompts:")
