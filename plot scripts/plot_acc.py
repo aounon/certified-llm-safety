@@ -2,8 +2,15 @@ import json
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-# Load data from JSON file
-results_file = 'results/safe_suffix_200.json'
+import argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument('results_file', type=str,
+                    help='Path to the results file')
+args = parser.parse_args()
+
+# Read data from JSON file
+results_file = args.results_file
 with open(results_file, 'r') as file:
     data = json.load(file)
 
@@ -23,8 +30,10 @@ plt.plot(max_erase_values, percent_safe_values, '-', color='tab:green', label='S
 plt.axhline(y=93.6, color='tab:blue', linewidth=2, linestyle='--', label='Certified Harmful Prompts (93.6%)')
 plt.xlabel('Max Erased Tokens (= Certified Length)', fontsize=14, labelpad=10)
 plt.ylabel('Accuracy (%)', fontsize=14)
-plt.xlim(-0.1, 30.1)
-plt.xticks(range(0, 31, 10))
+plt.xlim(-0.05, 12.05)
+plt.xticks(range(0, 13, 4))
+# plt.xlim(-0.1, 30.1)
+# plt.xticks(range(0, 31, 10))
 plt.ylim(-0.5, 100.5)
 plt.grid(True, linewidth=2)
 plt.legend(loc="lower right",fontsize=14)
