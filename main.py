@@ -21,6 +21,14 @@ parser.add_argument('--max_erase', type=int, default=20,
                     help='maximum number of tokens to erase')
 parser.add_argument('--num_adv', type=int, default=2,
                     help='number of adversarial prompts to defend against (contiguous mode only)')
+
+# -- Randomizer arguments -- #
+parser.add_argument('--randomize', action='store_true',
+                    help="Use randomized check")
+parser.add_argument('--sampling-ratio', type=float, default=0.1,
+                    help="Ratio of subsequences to evaluate (if randomize=True)")
+# -------------------------- #
+
 parser.add_argument('--results_dir', type=str, default="results",
                     help='directory to save results')
 args = parser.parse_args()
@@ -87,11 +95,14 @@ if eval_type == "safe":
     for i in range(num_prompts):
         prompt = prompts[i]
         if mode == "suffix":
-            harmful = erase_and_check(prompt, pipeline, tokenizer, max_erase=max_erase)
+            harmful = erase_and_check(prompt, pipeline, tokenizer, max_erase=max_erase, 
+                                      randomized=args.randomize, prompt_sampling_ratio=args.sampling_ratio)
         elif mode == "subset":
-            harmful = erase_and_check_subsets(prompt, pipeline, tokenizer, max_erase=max_erase)
+            harmful = erase_and_check_subsets(prompt, pipeline, tokenizer, max_erase=max_erase,
+                                      randomized=args.randomize, prompt_sampling_ratio=args.sampling_ratio)
         elif mode == "contiguous":
-            harmful = erase_and_check_contiguous(prompt, pipeline, tokenizer, max_erase=max_erase, num_adv=num_adv)
+            harmful = erase_and_check_contiguous(prompt, pipeline, tokenizer, max_erase=max_erase, num_adv=num_adv,
+                                      randomized=args.randomize, prompt_sampling_ratio=args.sampling_ratio)
         if not harmful:
             count_safe += 1
 
