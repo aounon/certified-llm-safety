@@ -55,11 +55,11 @@ def is_harmful(prompts, pipeline, tokenizer, randomized=False, prompt_sampling_r
         # Check for "Not harmful" in the last message
         if any([prefix in last_message for prefix in PREFIXES]):
             list_of_bools.append(False)
-            # print("RESPONSE: " + response)
+            print("RESPONSE: " + response)
 
         else:
             list_of_bools.append(True)
-            # print("RESPONSE: " + response)
+            print("RESPONSE: " + response)
 
     return list_of_bools
 
