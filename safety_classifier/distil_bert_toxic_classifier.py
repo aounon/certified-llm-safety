@@ -10,45 +10,10 @@ import torch.nn as nn
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report
 import transformers
-from transformers import AutoModel, BertTokenizerFast
-import random
-seed = 912
-random.seed(seed)
-torch.manual_seed(seed)
-np.random.seed(seed)
+from transformers import RobertaTokenizer, RobertaForSequenceClassification
 
 # specify GPU
 device = 'cpu'  # torch.device("cuda")
-
-class ANN(nn.Module):
-    def __init__(self):
-        super(ANN, self).__init__()
-
-        # relu activation function
-        self.relu =  nn.ReLU()
-
-        # dense layer 1
-        self.fc1 = nn.Linear(25, 8)
-
-        # dense layer 2 (Output layer)
-        self.fc2 = nn.Linear(8, 2)
-
-        #softmax activation function
-        self.softmax = nn.LogSoftmax(dim=1)
-
-    #define the forward pass
-    def forward(self, sent_id):
-        x = self.fc1(sent_id.float())
-
-        x = self.relu(x)
-
-        # output layer
-        x = self.fc2(x)
-
-        # apply softmax activation
-        x = self.softmax(x)
-
-        return x
 
 
 def read_text(filename):
@@ -59,6 +24,8 @@ def read_text(filename):
             string.append(l)
     return pd.DataFrame(string)
 
+
+seed = 912
 
 safe_prompt = read_text("../data/safe_prompts.txt")
 harm_prompt = read_text("../data/harmful_prompts.txt")
@@ -77,11 +44,14 @@ val_text, test_text, val_labels, test_labels = train_test_split(temp_text, temp_
                                                                 test_size=0.5, 
                                                                 stratify=temp_labels)
 
-model = ANN()
 
-# Load the BERT tokenizer
-tokenizer = BertTokenizerFast.from_pretrained('bert-base-uncased')
+from transformers import DistilBertTokenizer, DistilBertForSequenceClassification
 
+# Load the tokenizer
+tokenizer = DistilBertTokenizer.from_pretrained('distilbert-base-uncased')
+
+# pass the pre-trained DistilBert to our define architecture
+model = DistilBertForSequenceClassification.from_pretrained('distilbert-base-uncased')
 
 # tokenize and encode sequences in the training set
 tokens_train = tokenizer.batch_encode_plus(
@@ -152,7 +122,7 @@ model = model.to(device)
 from transformers import AdamW
 
 # define the optimizer
-optimizer = AdamW(model.parameters(), lr = 1e-3)          # learning rate
+optimizer = AdamW(model.parameters(), lr = 1e-5)          # learning rate
 
 from sklearn.utils.class_weight import compute_class_weight
 
@@ -171,7 +141,7 @@ weights = weights.to(device)
 cross_entropy  = nn.NLLLoss(weight=weights) 
 
 # number of training epochs
-epochs = 200
+epochs = 5
 
 # function to train the model
 def train():
@@ -193,13 +163,13 @@ def train():
     # push the batch to gpu
     batch = [r.to(device) for r in batch]
  
-    sent_id, _, labels = batch
+    sent_id, mask, labels = batch
 
     # clear previously calculated gradients 
     model.zero_grad()        
 
     # get model predictions for the current batch
-    preds = model(sent_id)
+    preds = model(sent_id, mask)[0]
 
     # compute the loss between actual and predicted values
     loss = cross_entropy(preds, labels)
@@ -235,7 +205,7 @@ def train():
 # function for evaluating the model
 def evaluate():
   
-  # print("\nEvaluating...")
+  print("\nEvaluating...")
   
   # deactivate dropout layers
   model.eval()
@@ -260,16 +230,16 @@ def evaluate():
     # push the batch to gpu
     batch = [t.to(device) for t in batch]
 
-    sent_id, _, labels = batch
+    sent_id, mask, labels = batch
 
     # deactivate autograd
     with torch.no_grad():
       
       # model predictions
-      preds = model(sent_id)
+      preds = model(sent_id, mask)[0]
 
       # compute the validation loss between actual and predicted values
-      loss = cross_entropy(preds,labels)
+      loss = cross_entropy(preds, labels)
 
       total_loss = total_loss + loss.item()
 
@@ -291,13 +261,13 @@ best_valid_loss = float('inf')
 # empty lists to store training and validation loss of each epoch
 train_losses=[]
 valid_losses=[]
-train_flag = False
+train_flag = True
 
 if train_flag == True:
 	#for each epoch
 	for epoch in range(epochs):
-             
-	    if epoch%10 ==0: print('\n Epoch {:} / {:}'.format(epoch + 1, epochs))
+     
+	    print('\n Epoch {:} / {:}'.format(epoch + 1, epochs))
     
 	    #train model
 	    train_loss, _ = train()
@@ -308,24 +278,24 @@ if train_flag == True:
 	    #save the best model
 	    if valid_loss < best_valid_loss:
         	best_valid_loss = valid_loss
-	        torch.save(model.state_dict(), 'ann_saved_weights.pt')
+	        torch.save(model.state_dict(), 'distillbert_saved_weights.pt')
     	
 	    # append training and validation loss
 	    train_losses.append(train_loss)
 	    valid_losses.append(valid_loss)
-	    if epoch % 10 == 0:
-	      print(f'\nTraining Loss: {train_loss:.3f}')
-	      print(f'Validation Loss: {valid_loss:.3f}')
+	    
+	    print(f'\nTraining Loss: {train_loss:.3f}')
+	    print(f'Validation Loss: {valid_loss:.3f}')
 
 
 #load weights of best model
-path = 'ann_saved_weights.pt'
+path = 'distillbert_saved_weights.pt'
 model.load_state_dict(torch.load(path))
 model.eval()
 
 # get predictions for test data
 with torch.no_grad():
-  preds = model(test_seq.to(device))
+  preds = model(test_seq.to(device), test_mask.to(device))[0]
   preds = preds.detach().cpu().numpy()
 
 preds = np.argmax(preds, axis = 1)
