@@ -69,8 +69,8 @@ def is_harmful(prompts, pipeline, tokenizer, randomized=False, prompt_sampling_r
 
     return list_of_bools
 
-def erase_and_check(prompt, pipeline, tokenizer, max_erase=20, min_length=4, num_adv=2, randomized=False, prompt_sampling_ratio=0.1, mode="suffix"):
-    if mode
+# def erase_and_check(prompt, pipeline, tokenizer, max_erase=20, min_length=4, num_adv=2, randomized=False, prompt_sampling_ratio=0.1, mode="suffix"):
+#     if mode
 
 def erase_and_check_suffix(prompt, pipeline, tokenizer, max_erase=20, min_length=4, randomized=False, prompt_sampling_ratio=0.1):
     """
