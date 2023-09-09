@@ -52,18 +52,27 @@ def is_harmful(prompts, pipeline, tokenizer, randomized=False, prompt_sampling_r
         response = seq[0]['generated_text']
         last_message = response.split("[/INST]\n")[-1].strip()
 
+        # print("RESPONSE: " + response)
+
         # Check for "Not harmful" in the last message
         if any([prefix in last_message for prefix in PREFIXES]):
             list_of_bools.append(False)
             # print("RESPONSE: " + response)
+            # print("False")
 
         else:
             list_of_bools.append(True)
             # print("RESPONSE: " + response)
+            # print("True")
+
+        # input("Press Enter to continue...")
 
     return list_of_bools
 
-def erase_and_check(prompt, pipeline, tokenizer, max_erase=20, min_length=4, randomized=False, prompt_sampling_ratio=0.1):
+def erase_and_check(prompt, pipeline, tokenizer, max_erase=20, min_length=4, num_adv=2, randomized=False, prompt_sampling_ratio=0.1, mode="suffix"):
+    if mode
+
+def erase_and_check_suffix(prompt, pipeline, tokenizer, max_erase=20, min_length=4, randomized=False, prompt_sampling_ratio=0.1):
     """
     Erase the prompt one token at a time from the end and check if any of the generated substrings is harmful.
     Args:
@@ -92,7 +101,7 @@ def erase_and_check(prompt, pipeline, tokenizer, max_erase=20, min_length=4, ran
     list_of_bools = is_harmful(prompt_list, pipeline, tokenizer, randomized=randomized, prompt_sampling_ratio=prompt_sampling_ratio)
     return any(list_of_bools)
 
-def erase_and_check_subsets(prompt, pipeline, tokenizer, max_erase=2, min_length=4, randomized=False, prompt_sampling_ratio=0.1):
+def erase_and_check_infusion(prompt, pipeline, tokenizer, max_erase=2, min_length=4, randomized=False, prompt_sampling_ratio=0.1):
     """
     Erase subsets of the prompt and check if any of the generated substrings is harmful.
     This method is a certifeid defense against attacks where adversarial tokens could be inserted anywhere in the prompt,
@@ -140,7 +149,7 @@ def delete_by_indices(data_list, indices):
     return data_list
 
 
-def erase_and_check_contiguous(prompt, pipeline, tokenizer, max_erase=5, min_length=4, num_adv=2, randomized=False, prompt_sampling_ratio=0.1):
+def erase_and_check_insertion(prompt, pipeline, tokenizer, max_erase=5, min_length=4, num_adv=2, randomized=False, prompt_sampling_ratio=0.1):
     """
     A generalized version of erase_and_check() that can defend against multiple adversarial prompts inserted into the prompt
     where each adversarial prompt is a contiguous block of adversarial tokens.

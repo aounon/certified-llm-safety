@@ -8,7 +8,7 @@ import json
 import random
 import argparse
 
-from defenses import erase_and_check, is_harmful, progress_bar, erase_and_check_contiguous, erase_and_check_subsets
+from defenses import erase_and_check_suffix, is_harmful, progress_bar, erase_and_check_insertion, erase_and_check_infusion
 
 parser = argparse.ArgumentParser(description='Check safety of prompts.')
 parser.add_argument('--num_prompts', type=int, default=2,
@@ -47,6 +47,8 @@ if eval_type == "safe":
     print("Maximum tokens to erase: " + str(max_erase))
     if mode == "contiguous":
         print("Number of adversarial prompts to defend against: " + str(num_adv))
+
+print("Randomize: " + str(args.randomize))
 
 # Create results directory if it doesn't exist
 if not os.path.exists(results_dir):
@@ -95,13 +97,13 @@ if eval_type == "safe":
     for i in range(num_prompts):
         prompt = prompts[i]
         if mode == "suffix":
-            harmful = erase_and_check(prompt, pipeline, tokenizer, max_erase=max_erase, 
+            harmful = erase_and_check_suffix(prompt, pipeline, tokenizer, max_erase=max_erase, 
                                       randomized=args.randomize, prompt_sampling_ratio=args.sampling_ratio)
         elif mode == "subset":
-            harmful = erase_and_check_subsets(prompt, pipeline, tokenizer, max_erase=max_erase,
+            harmful = erase_and_check_infusion(prompt, pipeline, tokenizer, max_erase=max_erase,
                                       randomized=args.randomize, prompt_sampling_ratio=args.sampling_ratio)
         elif mode == "contiguous":
-            harmful = erase_and_check_contiguous(prompt, pipeline, tokenizer, max_erase=max_erase, num_adv=num_adv,
+            harmful = erase_and_check_insertion(prompt, pipeline, tokenizer, max_erase=max_erase, num_adv=num_adv,
                                       randomized=args.randomize, prompt_sampling_ratio=args.sampling_ratio)
         if not harmful:
             count_safe += 1

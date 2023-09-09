@@ -34,22 +34,30 @@ df = pd.DataFrame(plot_data)
 sns.set_style("darkgrid", {"grid.color": ".85"})
 
 # Create the plot
-colors = ['tab:green', 'tab:purple']
-plt.figure(figsize=(8, 6))
-for num_adv in [1, 2]:
-    subset = df[df['num_adv'] == num_adv]
-    plt.plot(subset['max_erase'], subset['percent_safe'], label=f'# Adv Prompts = {num_adv}', linewidth=2, color=colors[num_adv - 1])
+colors = ['tab:green', 'tab:olive']
+plt.figure(figsize=(7, 6))
+# Bar plot
+sns.barplot(x='max_erase', y='percent_safe', hue='num_adv', data=df, palette=colors, alpha=0.7)
+# for num_adv in [1, 2]:
+#     subset = df[df['num_adv'] == num_adv]
+#     # plt.plot(subset['max_erase'], subset['percent_safe'], label=f'# Adv Prompts = {num_adv}', linewidth=2, color=colors[num_adv - 1])
+#     plt.bar(subset['max_erase'], subset['percent_safe'], color=colors[num_adv - 1], alpha=0.5, width=1, label=f'# Adv Prompts = {num_adv}')
 
 # Set the labels, title, and legend
-plt.xlabel("Max Erased Tokens (= Certified Length)", fontsize=14)
-plt.ylabel("Accuracy (%)", fontsize=14)
-plt.legend(loc='lower right', fontsize=14)
+plt.xlabel("Max Erase Length (= Certified Length)", fontsize=14)
+plt.ylabel("% Safe Prompts Labeled Safe", fontsize=14)
+# plt.legend(loc='lower right', fontsize=14)
+# change labels for the bar plots in the legend
+handles, labels = plt.gca().get_legend_handles_labels()
+labels = ['# Insertions = 1', '# Insertions = 2']
+plt.legend(handles, labels, loc='lower right', fontsize=14)
+
 plt.xticks(fontsize=14)
-plt.xlim(-0.02, 6.02)
-plt.xticks(range(0, 7, 2))
-plt.ylim(-0.5, 100.5)
+# plt.xlim(-0.02, 6.02)
+# plt.xticks(df['max_erase'])
+plt.ylim(0, 100)
 plt.yticks(fontsize=14)
-plt.grid(True, linewidth=2)
+plt.grid(False)
 
 # Save the plot to a PNG file
 plot_file = results_file.replace('.json', '_acc.png')

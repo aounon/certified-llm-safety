@@ -34,21 +34,30 @@ df = pd.DataFrame(plot_data)
 sns.set_style("darkgrid", {"grid.color": ".85"})
 
 # Create the plot
-colors = ['tab:blue', 'tab:brown']
-plt.figure(figsize=(8, 6))
-for num_adv in [1, 2]:
-    subset = df[df['num_adv'] == num_adv]
-    plt.plot(subset['max_erase'], subset['time_per_prompt'], label=f'# Adv Prompts = {num_adv}', linewidth=2, color=colors[num_adv - 1])
+colors = ['tab:blue', 'tab:purple']
+plt.figure(figsize=(7, 6))
+# Bar plot
+sns.barplot(x='max_erase', y='time_per_prompt', hue='num_adv', data=df, palette=colors, alpha=0.7)
+# for num_adv in [1, 2]:
+#     subset = df[df['num_adv'] == num_adv]
+#     plt.plot(subset['max_erase'], subset['time_per_prompt'], label=f'# Adv Prompts = {num_adv}', linewidth=2, color=colors[num_adv - 1])
 
 # Set the labels, title, and legend
-plt.xlabel("Max Erased Tokens (= Certified Length)", fontsize=14)
+plt.xlabel("Max Erase Length", fontsize=14)
 plt.ylabel("Time per Prompt (sec)", fontsize=14)
-plt.legend(loc='upper left', fontsize=14)
-plt.xlim(-0.02, 6.02)
-plt.xticks(range(0, 7, 2), fontsize=14)
-plt.ylim(-1, 201)
-plt.yticks(range(0, 201, 40), fontsize=14)
-plt.grid(True, linewidth=2)
+# plt.legend(loc='upper left', fontsize=14)
+# change labels for the bar plots in the legend
+handles, labels = plt.gca().get_legend_handles_labels()
+labels = ['# Insertions = 1', '# Insertions = 2']
+plt.legend(handles, labels, loc='upper left', fontsize=14)
+# plt.xlim(-0.02, 6.02)
+# plt.xticks(range(0, 7, 2), fontsize=14)
+plt.ylim(0, 180)
+plt.yticks(range(0, 181, 45), fontsize=14)
+plt.grid(False)
+
+plt.tick_params(axis='both', labelsize=14)
+plt.tight_layout()
 
 # Save the plot to a PNG file
 plot_file = results_file.replace('.json', '_time.png')
