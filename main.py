@@ -8,12 +8,12 @@ import json
 import random
 import argparse
 
-from defenses import erase_and_check_suffix, is_harmful, progress_bar, erase_and_check_insertion, erase_and_check_infusion
+from defenses import erase_and_check_suffix, is_harmful, progress_bar, erase_and_check
 
 parser = argparse.ArgumentParser(description='Check safety of prompts.')
 parser.add_argument('--num_prompts', type=int, default=2,
                     help='number of prompts to check')
-parser.add_argument('--mode', type=str, default="suffix", choices=["suffix", "subset", "contiguous"],
+parser.add_argument('--mode', type=str, default="suffix", choices=["suffix", "insertion", "infusion"],
                     help='attack mode to defend against')
 parser.add_argument('--eval_type', type=str, default="safe", choices=["safe", "harmful"],
                     help='type of prompts to evaluate')
@@ -46,18 +46,18 @@ results_dir = args.results_dir
 
 print("Evaluation type: " + eval_type)
 print("Number of prompts to check: " + str(num_prompts))
-print("Append adversarial prompts?" + str(args.append_adv))
-print("Use randomization?" + str(args.randomize))
+print("Append adversarial prompts? " + str(args.append_adv))
+print("Use randomization? " + str(args.randomize))
 if args.randomize:
     print("Sampling ratio: ", str(args.sampling_ratio))
 
 if eval_type == "safe":
     print("Mode: " + mode)
     print("Maximum tokens to erase: " + str(max_erase))
-    if mode == "contiguous":
+    if mode == "insertion":
         print("Number of adversarial prompts to defend against: " + str(num_adv))
 
-print("Randomize: " + str(args.randomize))
+# print("Randomize: " + str(args.randomize))
 
 # Create results directory if it doesn't exist
 if not os.path.exists(results_dir):
@@ -79,7 +79,8 @@ else:
 # print(results)
 
 # Load model and tokenizer
-model = "meta-llama/Llama-2-13b-chat-hf"
+# model = "meta-llama/Llama-2-13b-chat-hf"
+model = "meta-llama/Llama-2-7b-chat-hf"
 print(f'Loading model {model}...')
 tokenizer = AutoTokenizer.from_pretrained(model)
 pipeline = transformers.pipeline(
@@ -88,6 +89,9 @@ pipeline = transformers.pipeline(
     torch_dtype=torch.float16,
     device_map="auto",
 )
+
+print("Pipeline type: ", type(pipeline))
+exit()
 
 # Suffix from Zou et al., 2023
 # length = 23 tokens from BPE / 90 characters
@@ -111,15 +115,17 @@ if eval_type == "safe":
     for i in range(num_prompts):
         prompt = prompts[i]
         if args.append_adv: prompt += adv_suffix
-        if mode == "suffix":
-            harmful = erase_and_check_suffix(prompt, pipeline, tokenizer, max_erase=max_erase, 
-                                      randomized=args.randomize, prompt_sampling_ratio=args.sampling_ratio)
-        elif mode == "subset":
-            harmful = erase_and_check_infusion(prompt, pipeline, tokenizer, max_erase=max_erase,
-                                      randomized=args.randomize, prompt_sampling_ratio=args.sampling_ratio)
-        elif mode == "contiguous":
-            harmful = erase_and_check_insertion(prompt, pipeline, tokenizer, max_erase=max_erase, num_adv=num_adv,
-                                      randomized=args.randomize, prompt_sampling_ratio=args.sampling_ratio)
+        harmful = erase_and_check(prompt, pipeline, tokenizer, max_erase=max_erase, num_adv=num_adv, randomized=args.randomize,
+                                  prompt_sampling_ratio=args.sampling_ratio, mode=mode)
+        # if mode == "suffix":
+        #     harmful = erase_and_check_suffix(prompt, pipeline, tokenizer, max_erase=max_erase, 
+        #                               randomized=args.randomize, prompt_sampling_ratio=args.sampling_ratio)
+        # elif mode == "subset":
+        #     harmful = erase_and_check_infusion(prompt, pipeline, tokenizer, max_erase=max_erase,
+        #                               randomized=args.randomize, prompt_sampling_ratio=args.sampling_ratio)
+        # elif mode == "contiguous":
+        #     harmful = erase_and_check_insertion(prompt, pipeline, tokenizer, max_erase=max_erase, num_adv=num_adv,
+        #                               randomized=args.randomize, prompt_sampling_ratio=args.sampling_ratio)
         if not harmful:
             count_safe += 1
 
@@ -132,7 +138,7 @@ if eval_type == "safe":
             + f' Time/prompt = {time_per_prompt:5.1f}s', end="\r")
         
     # Save results
-    if mode == "contiguous":
+    if mode == "insertion":
         if str(dict(num_adv = num_adv)) not in results:
             results[str(dict(num_adv = num_adv))] = {}
         results[str(dict(num_adv = num_adv))][str(dict(max_erase = max_erase))] = dict(percent_safe = percent_safe, time_per_prompt = time_per_prompt)
