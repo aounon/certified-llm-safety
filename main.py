@@ -1,7 +1,7 @@
 import torch
 import transformers
 from transformers import AutoTokenizer
-
+from models import *
 import os
 import time
 import json
@@ -35,6 +35,11 @@ parser.add_argument('--sampling-ratio', type=float, default=0.1,
 
 parser.add_argument('--results_dir', type=str, default="results",
                     help='directory to save results')
+parser.add_argument('--use_classifier', action='store_true',
+                    help='flag for using trained safety filters')
+parser.add_argument('--safety_model', default='ann',
+                    help='name of trained safety filters')
+
 args = parser.parse_args()
 
 num_prompts = args.num_prompts
@@ -43,6 +48,8 @@ eval_type = args.eval_type
 max_erase = args.max_erase
 num_adv = args.num_adv
 results_dir = args.results_dir
+use_classifier = args.use_classifier
+safety_model = args.safety_model
 
 print("Evaluation type: " + eval_type)
 print("Number of prompts to check: " + str(num_prompts))
@@ -68,6 +75,15 @@ if eval_type == "safe":
     results_file = os.path.join(results_dir, f"{eval_type}_{mode}_{num_prompts}.json")
 elif eval_type == "harmful":
     results_file = os.path.join(results_dir, f"{eval_type}_{num_prompts}.json")
+
+
+# Load safety filter model
+if safety_model == 'ann':
+    safety_classifier = ANN()
+    safety_classifier.load_state_dict(torch.load('./safety_classifier/ann_saved_weights.pt'))
+else:
+    print('Incorrect choice')
+    exit(0)
 
 # Load results if they exist
 if os.path.exists(results_file):
@@ -171,7 +187,7 @@ elif eval_type == "harmful":
         batch = prompts[i:i+batch_size]
         # Evaluating the safety filter gives us certifed safety guarantees on
         # erase_and_check for harmful prompts (from construction).
-        harmful = is_harmful(batch, pipeline, tokenizer)
+        harmful = is_harmful(batch, pipeline, tokenizer, safety_model=safety_classifier, use_classifier=True)
         count_harmful += sum(harmful)
 
         current_time = time.time()
