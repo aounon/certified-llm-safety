@@ -30,8 +30,9 @@ def is_harmful(prompts, pipeline, tokenizer, randomized=False, prompt_sampling_r
     Returns:
         A list of booleans indicating whether each prompt is harmful or not.
     """
+    print(use_classifier)
     if use_classifier:
-
+        import ipdb; ipdb.set_trace()
         list_of_bools = []
 
     else:
@@ -133,7 +134,8 @@ def erase_and_check(prompt, pipeline, tokenizer, max_erase=20, min_length=4, num
 
 
 def erase_and_check_suffix(prompt, pipeline, tokenizer, max_erase=20, min_length=4, randomized=False, prompt_sampling_ratio=0.1):
-    """
+    
+    print(use_classifier)"""
     Erase the prompt one token at a time from the end and check if any of the generated substrings is harmful.
     Args:
         prompt: The prompt to erase from.
