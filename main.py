@@ -81,14 +81,14 @@ elif eval_type == "harmful" or eval_type == "smoothing":
 # elif eval_type == "smoothing":
 #     results_file = os.path.join(results_dir, f"{eval_type}_{max_erase}_{num_prompts}.json")
 
-
-# Load safety filter model
-if safety_model == 'ann':
-    safety_classifier = ANN()
-    safety_classifier.load_state_dict(torch.load('./safety_classifier/ann_saved_weights.pt'))
-else:
-    print('Incorrect choice')
-    exit(0)
+if use_classifier:
+    # Load safety filter model
+    if safety_model == 'ann':
+        safety_classifier = ANN()
+        safety_classifier.load_state_dict(torch.load('./safety_classifier/ann_saved_weights.pt'))
+    else:
+        print('Incorrect choice')
+        exit(0)
 
 
 # Load safety filter model
