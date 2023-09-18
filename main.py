@@ -7,8 +7,8 @@ import time
 import json
 import random
 import argparse
-
 from defenses import erase_and_check_suffix, is_harmful, progress_bar, erase_and_check
+from transformers import DistilBertTokenizer, DistilBertForSequenceClassification, RobertaForSequenceClassification
 
 parser = argparse.ArgumentParser(description='Check safety of prompts.')
 parser.add_argument('--num_prompts', type=int, default=2,
@@ -37,7 +37,7 @@ parser.add_argument('--results_dir', type=str, default="results",
                     help='directory to save results')
 parser.add_argument('--use_classifier', action='store_true',
                     help='flag for using trained safety filters')
-parser.add_argument('--safety_model', default='ann',
+parser.add_argument('--safety_model', default='roberta',
                     help='name of trained safety filters')
 
 args = parser.parse_args()
@@ -74,13 +74,28 @@ if not os.path.exists(results_dir):
 if eval_type == "safe":
     results_file = os.path.join(results_dir, f"{eval_type}_{mode}_{num_prompts}.json")
 elif eval_type == "harmful":
-    results_file = os.path.join(results_dir, f"{eval_type}_{num_prompts}.json")
+    results_file = os.path.join(results_dir, f"{eval_type}_{safety_model}_{num_prompts}_erase_{max_erase}.json")
 
 
 # Load safety filter model
 if safety_model == 'ann':
     safety_classifier = ANN()
     safety_classifier.load_state_dict(torch.load('./safety_classifier/ann_saved_weights.pt'))
+elif safety_model == 'bert':
+    bert = AutoModel.from_pretrained('bert-base-uncased')
+
+    # freeze all the parameters
+    for param in bert.parameters():
+        param.requires_grad = False
+
+    safety_classifier = BERT_Arch(bert)
+    safety_classifier.load_state_dict(torch.load('./safety_classifier/bert_saved_weights.pt'))
+elif safety_model == 'distillbert':
+    safety_classifier = DistilBertForSequenceClassification.from_pretrained('distilbert-base-uncased')
+    safety_classifier.load_state_dict(torch.load('./safety_classifier/distillbert_saved_weights.pt'))
+elif safety_model == 'roberta':
+    safety_classifier = RobertaForSequenceClassification.from_pretrained('roberta-base')
+    safety_classifier.load_state_dict(torch.load('./safety_classifier/roberta_saved_weights.pt'))
 else:
     print('Incorrect choice')
     exit(0)
@@ -96,7 +111,7 @@ else:
 
 # Load model and tokenizer
 # model = "meta-llama/Llama-2-13b-chat-hf"
-model = "/n/holylabs/LABS/hlakkaraju_lab/Lab/llama2-hf/Llama-2-7b-chat-hf"
+model = "/n/holylabs/LABS/hlakkaraju_lab/Lab/llama2-hf/Llama-2-7b-chat-hf/"
 print(f'Loading model {model}...')
 tokenizer = AutoTokenizer.from_pretrained(model)
 pipeline = transformers.pipeline(
@@ -107,7 +122,6 @@ pipeline = transformers.pipeline(
 )
 
 print("Pipeline type: ", type(pipeline))
-exit()
 
 # Suffix from Zou et al., 2023
 # length = 23 tokens from BPE / 90 characters
@@ -187,7 +201,7 @@ elif eval_type == "harmful":
         batch = prompts[i:i+batch_size]
         # Evaluating the safety filter gives us certifed safety guarantees on
         # erase_and_check for harmful prompts (from construction).
-        harmful = is_harmful(batch, pipeline, tokenizer, safety_model=safety_classifier, use_classifier=True)
+        harmful = is_harmful(batch, pipeline, tokenizer, classifier_type=safety_model, safety_model=safety_classifier, use_classifier=True)
         count_harmful += sum(harmful)
 
         current_time = time.time()
