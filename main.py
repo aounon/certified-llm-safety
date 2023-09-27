@@ -9,7 +9,7 @@ import random
 import argparse
 from math import ceil
 
-from defenses import erase_and_check_suffix, is_harmful, progress_bar, erase_and_check, erase_and_check_smoothing
+from defenses import is_harmful, progress_bar, erase_and_check, erase_and_check_smoothing
 
 parser = argparse.ArgumentParser(description='Check safety of prompts.')
 parser.add_argument('--num_prompts', type=int, default=2,
@@ -21,7 +21,7 @@ parser.add_argument('--eval_type', type=str, default="safe", choices=["safe", "h
 parser.add_argument('--max_erase', type=int, default=20,
                     help='maximum number of tokens to erase')
 parser.add_argument('--num_adv', type=int, default=2,
-                    help='number of adversarial prompts to defend against (contiguous mode only)')
+                    help='number of adversarial prompts to defend against (insertion mode only)')
 
 # use adversarial prompt or not
 parser.add_argument('--append-adv', action='store_true',

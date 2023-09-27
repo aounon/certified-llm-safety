@@ -4,7 +4,7 @@
 import itertools
 from itertools import combinations
 import random
-from math import ceil
+from math import ceil, floor
 
 PREFIXES = ["Understood",
             "Sure, I'm here to help",
@@ -115,10 +115,10 @@ def is_harmful(prompts, pipeline, tokenizer, randomized=False, prompt_sampling_r
             if not any([prefix in last_message for prefix in PREFIXES]):
                 list_of_bools[long_idx[i]] = True
 
-        for prompt in prompts_to_test:
-            prompt_length = len(tokenizer(prompt)['input_ids'][1:])
-            if prompt_length < min_length:
-                list_of_bools.append(False)
+        # for prompt in prompts_to_test:
+        #     prompt_length = len(tokenizer(prompt)['input_ids'][1:])
+        #     if prompt_length < min_length:
+        #         list_of_bools.append(False)
 
     return list_of_bools
 
@@ -296,7 +296,11 @@ def erase_and_check_smoothing(prompt, pipeline, tokenizer, max_erase=20):
 
     # Check if majority of the erased strings are harmful
     list_of_bools = is_harmful(prompt_list, pipeline, tokenizer)
-    return max(0, sum(list_of_bools) - ceil((min(max_erase, prompt_length) + 1) / 2))
+
+    # Number of harmful prompts
+    num_harmful = sum(list_of_bools)
+    return min(num_harmful - 1, floor(max_erase / 2))
+    # return max(0, sum(list_of_bools) - ceil((min(max_erase, prompt_length) + 1) / 2))
 
 
 def progress_bar(done, done_symbol='█', left_symbol='▒', length=25):
