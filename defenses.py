@@ -1,8 +1,12 @@
 # Python file to implement certified defenses against adversarial prompts
 # in large language models.
 
+import torch
+import random
 import itertools
+import numpy as np
 from itertools import combinations
+from transformers import AutoModel, BertTokenizerFast, DistilBertTokenizer, RobertaTokenizer
 import random
 from math import ceil, floor
 
@@ -14,7 +18,7 @@ PREFIXES = ["Understood",
             "intent "
             ]
 
-def is_harmful(prompts, pipeline, tokenizer, randomized=False, prompt_sampling_ratio=0.1, no_sys_prompt=False, use_classifier=False, min_length=4):
+def is_harmful(prompts, pipeline, tokenizer, safety_model, classifier_type, randomized=False, prompt_sampling_ratio=0.1, no_sys_prompt=False, use_classifier=False, min_length=4):
     """
     Check whether each prompt in the list of prompts is harmful or not.
     Args:
@@ -30,11 +34,58 @@ def is_harmful(prompts, pipeline, tokenizer, randomized=False, prompt_sampling_r
     Returns:
         A list of booleans indicating whether each prompt is harmful or not.
     """
-    # print(use_classifier)
-    # if use_classifier:
+    print(use_classifier)
+    if use_classifier:
+        if randomized:
+            num_prompts_to_atest = int(prompt_sampling_ratio * len(prompts))
+            prompts_to_test = random.sample(prompts, num_prompts_to_test)
+        else:
+            prompts_to_test = prompts
+        if classifier_type == 'ann':
+            tokenizer = BertTokenizerFast.from_pretrained('bert-base-uncased')
+            prompts_to_test = torch.tensor(tokenizer.batch_encode_plus(prompts_to_test, max_length = 25, pad_to_max_length=True, truncation=True)['input_ids'])
+        elif classifier_type == 'bert':
+            tokenizer = BertTokenizerFast.from_pretrained('bert-base-uncased')
+            tokens_test = tokenizer.batch_encode_plus(prompts_to_test, max_length = 25, pad_to_max_length=True, truncation=True)
+            prompts_to_test = torch.tensor(tokens_test['input_ids'])
+            prompts_to_test_mask = torch.tensor(tokens_test['attention_mask'])
+        elif classifier_type == 'distillbert':
+            tokenizer = DistilBertTokenizer.from_pretrained('distilbert-base-uncased')
+            tokens_test = tokenizer.batch_encode_plus(prompts_to_test, max_length = 25, pad_to_max_length=True, truncation=True)
+            prompts_to_test = torch.tensor(tokens_test['input_ids'])
+            prompts_to_test_mask = torch.tensor(tokens_test['attention_mask'])
+        elif classifier_type == 'roberta':
+            tokenizer = RobertaTokenizer.from_pretrained('roberta-base')
+            tokens_test = tokenizer.batch_encode_plus(prompts_to_test, max_length = 25, pad_to_max_length=True, truncation=True)
+            prompts_to_test = torch.tensor(tokens_test['input_ids'])
+            prompts_to_test_mask = torch.tensor(tokens_test['attention_mask'])
+
+        else:
+            print('Invalid choice!!')
+            exit(0)
+
+        # SAFE --> 1   || HARMFUL --> 0
+        safety_model.eval()        
     if not 'TextGenerationPipeline' in str(type(pipeline)):
-        import ipdb; ipdb.set_trace()
         list_of_bools = []
+        for i, prompt in enumerate(prompts_to_test):
+            if classifier_type == 'ann':
+                preds = safety_model(prompt.reshape(1, -1)).detach().numpy()
+            elif classifier_type == 'bert':
+                preds = safety_model(prompt.reshape(1, -1), prompts_to_test_mask[i, :].reshape(1, -1)).detach().numpy()
+            elif classifier_type == 'distillbert':
+                preds = safety_model(prompt.reshape(1, -1), prompts_to_test_mask[i, :].reshape(1, -1))[0].detach().numpy()
+            elif classifier_type == 'roberta':
+                preds = safety_model(prompt.reshape(1, -1), prompts_to_test_mask[i, :].reshape(1, -1))[0].detach().numpy()
+            else:
+                print('Invalid choice!!')
+                exit(0)
+
+            preds = np.argmax(preds, axis = 1)
+            if preds == 1:
+                list_of_bools.append(False)
+            else:
+                list_of_bools.append(True)
 
     else:
         # Add the instructions to the prompts
@@ -134,8 +185,7 @@ def erase_and_check(prompt, pipeline, tokenizer, max_erase=20, min_length=4, num
         raise ValueError("Invalid mode: " + mode)
 
 
-def erase_and_check_suffix(prompt, pipeline, tokenizer, max_erase=20, min_length=4, randomized=False, prompt_sampling_ratio=0.1):
-    
+def erase_and_check_suffix(prompt, pipeline, tokenizer, max_erase=20, min_length=4, randomized=False, prompt_sampling_ratio=0.1):   
     """
     Erase the prompt one token at a time from the end and check if any of the generated substrings is harmful.
     Args:
