@@ -1,4 +1,4 @@
-# Just a script to play with LLaMa in an ipython notebook
+# Just a script to play with LLaMa in an ipython console
 # run sandbox.py, and then just type respond_to("commmand")
 
 from transformers import AutoModelForCausalLM, AutoTokenizer
