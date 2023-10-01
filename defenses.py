@@ -18,7 +18,7 @@ PREFIXES = ["Understood",
             "intent "
             ]
 
-def is_harmful(prompts, pipeline, tokenizer, safety_model, classifier_type, randomized=False, prompt_sampling_ratio=0.1, no_sys_prompt=False, use_classifier=False, min_length=4):
+def is_harmful(prompts, pipeline, tokenizer, safety_model=None, classifier_type=None, randomized=False, prompt_sampling_ratio=0.1, no_sys_prompt=False, use_classifier=False, min_length=4):
     """
     Check whether each prompt in the list of prompts is harmful or not.
     Args:
@@ -34,7 +34,7 @@ def is_harmful(prompts, pipeline, tokenizer, safety_model, classifier_type, rand
     Returns:
         A list of booleans indicating whether each prompt is harmful or not.
     """
-    print(use_classifier)
+    # print(use_classifier)
     if use_classifier:
         if randomized:
             num_prompts_to_atest = int(prompt_sampling_ratio * len(prompts))
@@ -88,6 +88,7 @@ def is_harmful(prompts, pipeline, tokenizer, safety_model, classifier_type, rand
                 list_of_bools.append(True)
 
     else:
+        # print("Using LLM-based filter")
         # Add the instructions to the prompts
         system_prompts = []
 
