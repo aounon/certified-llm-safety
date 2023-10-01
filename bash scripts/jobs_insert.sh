@@ -1,4 +1,4 @@
-for num_adv in 2
+for num_adv in 1 2
 do
     for max_erase in 0 2 4 6
     do

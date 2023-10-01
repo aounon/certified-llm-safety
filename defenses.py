@@ -166,9 +166,9 @@ def is_harmful(prompts, pipeline, tokenizer, safety_model=None, classifier_type=
             # Get the last message in the response
             response = seq[0]['generated_text']
             last_message = response.split("[/INST]")[-1].strip()
-            print("\nRESPONSE: " + last_message)
+            # print("\nRESPONSE: " + last_message)
             classifier_output = any([prefix in last_message for prefix in PREFIXES])
-            print("Harmful? " + str(not classifier_output))
+            # print("Harmful? " + str(not classifier_output))
             #input("Enter to continue...")
 
             # Check for "Not harmful" in the last message

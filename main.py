@@ -93,17 +93,19 @@ if use_classifier:
         for param in bert.parameters():
             param.requires_grad = False
 
-    safety_classifier = BERT_Arch(bert)
-    safety_classifier.load_state_dict(torch.load('./safety_classifier/bert_saved_weights.pt'))
-elif safety_model == 'distillbert':
-    safety_classifier = DistilBertForSequenceClassification.from_pretrained('distilbert-base-uncased')
-    safety_classifier.load_state_dict(torch.load('./safety_classifier/distillbert_saved_weights.pt'))
-elif safety_model == 'roberta':
-    safety_classifier = RobertaForSequenceClassification.from_pretrained('roberta-base')
-    safety_classifier.load_state_dict(torch.load('./safety_classifier/roberta_saved_weights.pt'))
+        safety_classifier = BERT_Arch(bert)
+        safety_classifier.load_state_dict(torch.load('./safety_classifier/bert_saved_weights.pt'))
+    elif safety_model == 'distillbert':
+        safety_classifier = DistilBertForSequenceClassification.from_pretrained('distilbert-base-uncased')
+        safety_classifier.load_state_dict(torch.load('./safety_classifier/distillbert_saved_weights.pt'))
+    elif safety_model == 'roberta':
+        safety_classifier = RobertaForSequenceClassification.from_pretrained('roberta-base')
+        safety_classifier.load_state_dict(torch.load('./safety_classifier/roberta_saved_weights.pt'))
+    else:
+        print('Incorrect choice')
+        exit(0)
 else:
-    print('Incorrect choice')
-    exit(0)
+    safety_classifier = None
 
 if use_classifier:
     # Load safety filter model
@@ -134,7 +136,7 @@ pipeline = transformers.pipeline(
     torch_dtype=torch.float16,
     device_map="auto",
 )
-print("Pipeline type: ", type(pipeline))
+# print("Pipeline type: ", type(pipeline))
 
 # Suffix to fool LLama safety filter from Zou et al's code
 # length = 20 tokens 
