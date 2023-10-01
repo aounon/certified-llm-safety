@@ -1,4 +1,4 @@
-# Just a script to play with LLaMa in an ipython notebook
+# Just a script to play with LLaMa in an ipython console
 # run sandbox.py, and then just type respond_to("commmand")
 
 from transformers import AutoModelForCausalLM, AutoTokenizer
@@ -7,9 +7,8 @@ import torch
 device = "cuda:0" if torch.cuda.is_available() else "cpu"
 torch.set_default_dtype(torch.float16)
 
-#modelname = "microsoft/phi-1_5"
-#modelname = 'lmsys/vicuna-7b-v1.3'
 modelname = "meta-llama/Llama-2-7b-chat-hf"
+#modelname = "meta-llama/Llama-2-7b-hf"
 
 model = AutoModelForCausalLM.from_pretrained(modelname, trust_remote_code=True, device_map="auto")
 #model = AutoModelForCausalLM.from_pretrained(modelname, trust_remote_code=True).to(device)
