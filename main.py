@@ -7,7 +7,7 @@ import time
 import json
 import random
 import argparse
-from transformers import DistilBertTokenizer, DistilBertForSequenceClassification, RobertaForSequenceClassification
+from transformers import DistilBertTokenizer, DistilBertForSequenceClassification
 from math import ceil
 
 from defenses import is_harmful, progress_bar, erase_and_check, erase_and_check_smoothing
@@ -71,6 +71,8 @@ elif eval_type == "smoothing":
 # print("Randomize: " + str(args.randomize))
 
 # Create results directory if it doesn't exist
+if use_classifier:
+    results_dir = results_dir + "_clf"
 if not os.path.exists(results_dir):
     os.makedirs(results_dir)
 
@@ -79,42 +81,6 @@ if eval_type == "safe":
     results_file = os.path.join(results_dir, f"{eval_type}_{mode}_{num_prompts}.json")
 elif eval_type == "harmful" or eval_type == "smoothing":
     results_file = os.path.join(results_dir, f"{eval_type}_{num_prompts}.json")
-# elif eval_type == "smoothing":
-#     results_file = os.path.join(results_dir, f"{eval_type}_{max_erase}_{num_prompts}.json")
-# Load safety filter model
-if use_classifier:
-    if safety_model == 'ann':
-        safety_classifier = ANN()
-        safety_classifier.load_state_dict(torch.load('./safety_classifier/ann_saved_weights.pt'))
-    elif safety_model == 'bert':
-        bert = AutoModel.from_pretrained('bert-base-uncased')
-
-        # freeze all the parameters
-        for param in bert.parameters():
-            param.requires_grad = False
-
-        safety_classifier = BERT_Arch(bert)
-        safety_classifier.load_state_dict(torch.load('./safety_classifier/bert_saved_weights.pt'))
-    elif safety_model == 'distillbert':
-        safety_classifier = DistilBertForSequenceClassification.from_pretrained('distilbert-base-uncased')
-        safety_classifier.load_state_dict(torch.load('./safety_classifier/distillbert_saved_weights.pt'))
-    elif safety_model == 'roberta':
-        safety_classifier = RobertaForSequenceClassification.from_pretrained('roberta-base')
-        safety_classifier.load_state_dict(torch.load('./safety_classifier/roberta_saved_weights.pt'))
-    else:
-        print('Incorrect choice')
-        exit(0)
-else:
-    safety_classifier = None
-
-if use_classifier:
-    # Load safety filter model
-    if safety_model == 'ann':
-        safety_classifier = ANN()
-        safety_classifier.load_state_dict(torch.load('./safety_classifier/ann_saved_weights.pt'))
-    else:
-        print('Incorrect choice')
-        exit(0)
 
 # Load results if they exist
 if os.path.exists(results_file):
@@ -123,20 +89,35 @@ if os.path.exists(results_file):
 else:
     results = {}
 
-# print(results)
+if use_classifier:
+    # Using custom classifier for safety filter
+    # Load model and tokenizer
+    tokenizer = DistilBertTokenizer.from_pretrained('distilbert-base-uncased')
+    model = DistilBertForSequenceClassification.from_pretrained('distilbert-base-uncased')
 
-# Load model and tokenizer
-model = "meta-llama/Llama-2-7b-chat-hf"
+    # Load model weights
+    path = 'models/distillbert_saved_weights.pt'
+    model.load_state_dict(torch.load(path))
+    model.eval()
 
-print(f'Loading model {model}...')
-tokenizer = AutoTokenizer.from_pretrained(model)
-pipeline = transformers.pipeline(
-    "text-generation",
-    model=model,
-    torch_dtype=torch.float16,
-    device_map="auto",
-)
-# print("Pipeline type: ", type(pipeline))
+    # Create a text classification pipeline
+    pipeline = transformers.pipeline('text-classification', model=model, tokenizer=tokenizer, device=0)
+
+else:
+    # Load model and tokenizer
+    model = "meta-llama/Llama-2-7b-chat-hf"
+    commit_id = "08751db2aca9bf2f7f80d2e516117a53d7450235"
+    # commit_id = "main"
+
+    print(f'Loading model {model}...')
+    tokenizer = AutoTokenizer.from_pretrained(model, revision=commit_id)
+    pipeline = transformers.pipeline(
+        "text-generation",
+        model=model,
+        torch_dtype=torch.float16,
+        device_map="auto",
+        revision=commit_id
+    )
 
 # Suffix to fool LLama safety filter from Zou et al's code
 # length = 20 tokens 
@@ -147,7 +128,8 @@ if eval_type == "safe":
     # Safe prompts
     print("Evaluating safe prompts:")
     # Load prompts from text file
-    with open("data/safe_prompts.txt", "r") as f:
+    # with open("data/safe_prompts.txt", "r") as f:
+    with open("data/safe_prompts_no_punc.txt", "r") as f:
         prompts = f.readlines()
         prompts = [prompt.strip() for prompt in prompts]
 
@@ -240,7 +222,7 @@ elif eval_type == "harmful":
         batch = prompts[i:i+batch_size]
         # Evaluating the safety filter gives us certifed safety guarantees on
         # erase_and_check for harmful prompts (from construction).
-        harmful = is_harmful(batch, pipeline, tokenizer, classifier_type=safety_model, safety_model=safety_classifier, use_classifier=use_classifier)
+        harmful = is_harmful(batch, pipeline, tokenizer)
         count_harmful += sum(harmful)
 
         current_time = time.time()

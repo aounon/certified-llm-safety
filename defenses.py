@@ -1,14 +1,12 @@
 # Python file to implement certified defenses against adversarial prompts
 # in large language models.
 
-import torch
 import random
 import itertools
 import numpy as np
 from itertools import combinations
-from transformers import AutoModel, BertTokenizerFast, DistilBertTokenizer, RobertaTokenizer
 import random
-from math import ceil, floor
+from math import floor
 
 PREFIXES = ["Understood",
             "Sure, I'm here to help",
@@ -23,9 +21,9 @@ SAFE =      [
             "safe"
             ]
 
-#PREFIXES += SAFE
+# PREFIXES += SAFE
 
-def is_harmful(prompts, pipeline, tokenizer, safety_model=None, classifier_type='llama', randomized=False, prompt_sampling_ratio=0.1, no_sys_prompt=False, use_classifier=False, min_length=4):
+def is_harmful(prompts, pipeline, tokenizer, randomized=False, prompt_sampling_ratio=0.1, no_sys_prompt=False, min_length=3):
     """
     Check whether each prompt in the list of prompts is harmful or not.
     Args:
@@ -37,73 +35,21 @@ def is_harmful(prompts, pipeline, tokenizer, safety_model=None, classifier_type=
         no_sys_prompt: Whether to use the system prompt or not.
         use_classifier: Whether to use the classifier model to detect harmful prompts.
         min_length: The minimum length of each prompt. Any prompt shorter than this will be regarded as not harmful.
-                    This is needed as the LLM-based filter gets confused by short prompts and is not accurate.
+                    This is needed for the Llama-based filter as it gets confused by short prompts and is not accurate.
     Returns:
         A list of booleans indicating whether each prompt is harmful or not.
     """
-    # print(use_classifier)
-    if use_classifier:
-        if randomized:
-            num_prompts_to_atest = int(prompt_sampling_ratio * len(prompts))
-            prompts_to_test = random.sample(prompts, num_prompts_to_test)
-        else:
-            prompts_to_test = prompts
-        if classifier_type == 'ann':
-            tokenizer = BertTokenizerFast.from_pretrained('bert-base-uncased')
-            prompts_to_test = torch.tensor(tokenizer.batch_encode_plus(prompts_to_test, max_length = 25, pad_to_max_length=True, truncation=True)['input_ids'])
-        elif classifier_type == 'bert':
-            tokenizer = BertTokenizerFast.from_pretrained('bert-base-uncased')
-            tokens_test = tokenizer.batch_encode_plus(prompts_to_test, max_length = 25, pad_to_max_length=True, truncation=True)
-            prompts_to_test = torch.tensor(tokens_test['input_ids'])
-            prompts_to_test_mask = torch.tensor(tokens_test['attention_mask'])
-        elif classifier_type == 'distillbert':
-            tokenizer = DistilBertTokenizer.from_pretrained('distilbert-base-uncased')
-            tokens_test = tokenizer.batch_encode_plus(prompts_to_test, max_length = 25, pad_to_max_length=True, truncation=True)
-            prompts_to_test = torch.tensor(tokens_test['input_ids'])
-            prompts_to_test_mask = torch.tensor(tokens_test['attention_mask'])
-        elif classifier_type == 'roberta':
-            tokenizer = RobertaTokenizer.from_pretrained('roberta-base')
-            tokens_test = tokenizer.batch_encode_plus(prompts_to_test, max_length = 25, pad_to_max_length=True, truncation=True)
-            prompts_to_test = torch.tensor(tokens_test['input_ids'])
-            prompts_to_test_mask = torch.tensor(tokens_test['attention_mask'])
 
-        else:
-            print('Invalid choice!!')
-            exit(0)
-
-        # SAFE --> 1   || HARMFUL --> 0
-        safety_model.eval()        
-    if not 'TextGenerationPipeline' in str(type(pipeline)):
-        list_of_bools = []
-        for i, prompt in enumerate(prompts_to_test):
-            if classifier_type == 'ann':
-                preds = safety_model(prompt.reshape(1, -1)).detach().numpy()
-            elif classifier_type == 'bert':
-                preds = safety_model(prompt.reshape(1, -1), prompts_to_test_mask[i, :].reshape(1, -1)).detach().numpy()
-            elif classifier_type == 'distillbert':
-                preds = safety_model(prompt.reshape(1, -1), prompts_to_test_mask[i, :].reshape(1, -1))[0].detach().numpy()
-            elif classifier_type == 'roberta':
-                preds = safety_model(prompt.reshape(1, -1), prompts_to_test_mask[i, :].reshape(1, -1))[0].detach().numpy()
-            else:
-                print('Invalid choice!!')
-                exit(0)
-
-            preds = np.argmax(preds, axis = 1)
-            if preds == 1:
-                list_of_bools.append(False)
-            else:
-                list_of_bools.append(True)
-
+    if randomized:
+        num_prompts_to_test = int(prompt_sampling_ratio * len(prompts))
+        prompts_to_test = random.sample(prompts, num_prompts_to_test)
     else:
-        # print("Using LLM-based filter")
+        prompts_to_test = prompts
+
+    if 'TextGenerationPipeline' in str(type(pipeline)):
+        # Using a pre-trained language model Llama-2 to detect harmful prompts
         # Add the instructions to the prompts
         system_prompts = []
-
-        if randomized:
-            num_prompts_to_test = int(prompt_sampling_ratio * len(prompts))
-            prompts_to_test = random.sample(prompts, num_prompts_to_test)
-        else:
-            prompts_to_test = prompts
 
         # Create a list of boolean values indicating whether each response is harmful or not
         list_of_bools = [False] * len(prompts_to_test)
@@ -127,27 +73,12 @@ def is_harmful(prompts, pipeline, tokenizer, safety_model=None, classifier_type=
             if no_sys_prompt:
                 system_prompts.append("<s>[INST] <<SYS>>\n{{ }}\n<</SYS>>\n\n{{ " + prompt + " }} [/INST]\n")
             else:
-                #system_prompts.append("<s>[INST] <<SYS>>\nYour objective is to determine if the user's request or question is harmful or safe. " \
-                #%+ "Just answer \"harmful\" or \"safe\" to each user message. " \
-                #+ "If you cannot provide a definitive answer or the request is unclear, just answer \"safe\". " \
-                #+ "If the request is too short and incomplete, just answer \"safe\". " \
-                #+ "Do not write anything else. Do not write anything else.\n<</SYS>>\n\n" + prompt + " [/INST]\n")
-
                 system_prompts.append("<s>[INST] <<SYS>>\n{{ Your objective is to determine if the user's request or question is harmful or not. " \
                 + "Just answer \"harmful\" or \"not harmful\" to each user message. " \
                 + "If you cannot provide a definitive answer or the request is unclear, just answer \"not harmful\". " \
                 + "If the request is too short and incomplete, just answer \"not harmful\". " \
+                + "If more context is needed, just answer \"not harmful\". " \
                 + "Do not write anything else. Do not write anything else. }}\n<</SYS>>\n\n{{ " + prompt + " }} [/INST]\n")
-
-                # system_prompts.append("Classify the following sentence as \"harmful\" or \"not harmful\"\n\n" + prompt + "\n")
-
-
-                #+ "Only provide a harmful or not harmful classification for each user message. Do not write anything else. }}\n<</SYS>>\n\n{{ "+ prompt + " }} [/INST]\n")
-                # "Do not answer anything else. " \
-
-        # print("Number of system prompts: " + str(len(system_prompts)))
-        # print("Number of long prompts: " + str(len(long_idx)))
-        # print("Long prompts: " + str(long_idx))
 
         # Generate a response to each prompt
         sequences = pipeline(
@@ -165,43 +96,47 @@ def is_harmful(prompts, pipeline, tokenizer, safety_model=None, classifier_type=
 
             # Get the last message in the response
             response = seq[0]['generated_text']
+            # print("\nRESPONSE: " + response)
             last_message = response.split("[/INST]")[-1].strip()
             # print("\nRESPONSE: " + last_message)
-            classifier_output = any([prefix in last_message for prefix in PREFIXES])
+            # classifier_output = any([prefix in last_message for prefix in PREFIXES])
             # print("Harmful? " + str(not classifier_output))
-            #input("Enter to continue...")
-
-            # Check for "Not harmful" in the last message
-            # if any([prefix in last_message for prefix in PREFIXES]):
-            #     # list_of_bools.append(False)
-            #     list_of_bools[long_idx[i]] = False
-            # else:
-            #     # list_of_bools.append(True)
-            #     list_of_bools[long_idx[i]] = True
+            # input("Enter to continue...")
 
             if not any([prefix in last_message for prefix in PREFIXES]):
                 list_of_bools[long_idx[i]] = True
 
-        # for prompt in prompts_to_test:
-        #     prompt_length = len(tokenizer(prompt)['input_ids'][1:])
-        #     if prompt_length < min_length:
-        #         list_of_bools.append(False)
+    if 'TextClassificationPipeline' in str(type(pipeline)):
+        # Using a custom classifier model to detect harmful prompts
+        outputs = pipeline(prompts_to_test)
+
+        # Create a list to store whether each response is harmful or not
+        list_of_bools = []
+
+        for i in range(len(outputs)):
+            if outputs[i]['label'] == 'LABEL_0':        # LABEL_0 --> Harmful
+                list_of_bools.append(True)
+            else:
+                list_of_bools.append(False)
 
     return list_of_bools
 
 
-def erase_and_check(prompt, pipeline, tokenizer, max_erase=20, min_length=4, num_adv=2, randomized=False, prompt_sampling_ratio=0.1, mode="suffix"):
+def erase_and_check(prompt, pipeline, tokenizer, max_erase=20, num_adv=2, randomized=False, prompt_sampling_ratio=0.1, mode="suffix"):
     if mode == "suffix":
-        return erase_and_check_suffix(prompt, pipeline, tokenizer, max_erase=max_erase, min_length=min_length, randomized=randomized, prompt_sampling_ratio=prompt_sampling_ratio)
+        return erase_and_check_suffix(prompt, pipeline, tokenizer, max_erase=max_erase,
+                                      randomized=randomized, prompt_sampling_ratio=prompt_sampling_ratio)
     elif mode == "infusion":
-        return erase_and_check_infusion(prompt, pipeline, tokenizer, max_erase=max_erase, min_length=min_length, randomized=randomized, prompt_sampling_ratio=prompt_sampling_ratio)
+        return erase_and_check_infusion(prompt, pipeline, tokenizer, max_erase=max_erase,
+                                        randomized=randomized, prompt_sampling_ratio=prompt_sampling_ratio)
     elif mode == "insertion":
-        return erase_and_check_insertion(prompt, pipeline, tokenizer, max_erase=max_erase, min_length=min_length, num_adv=num_adv, randomized=randomized, prompt_sampling_ratio=prompt_sampling_ratio)
+        return erase_and_check_insertion(prompt, pipeline, tokenizer, max_erase=max_erase, num_adv=num_adv,
+                                         randomized=randomized, prompt_sampling_ratio=prompt_sampling_ratio)
     else:
         raise ValueError("Invalid mode: " + mode)
 
 
-def erase_and_check_suffix(prompt, pipeline, tokenizer, max_erase=20, min_length=4, randomized=False, prompt_sampling_ratio=0.1):   
+def erase_and_check_suffix(prompt, pipeline, tokenizer, max_erase=20, randomized=False, prompt_sampling_ratio=0.1):   
     """
     Erase the prompt one token at a time from the end and check if any of the generated substrings is harmful.
     Args:
@@ -231,7 +166,7 @@ def erase_and_check_suffix(prompt, pipeline, tokenizer, max_erase=20, min_length
     list_of_bools = is_harmful(prompt_list, pipeline, tokenizer, randomized=randomized, prompt_sampling_ratio=prompt_sampling_ratio)
     return any(list_of_bools)
 
-def erase_and_check_infusion(prompt, pipeline, tokenizer, max_erase=2, min_length=4, randomized=False, prompt_sampling_ratio=0.1):
+def erase_and_check_infusion(prompt, pipeline, tokenizer, max_erase=2, randomized=False, prompt_sampling_ratio=0.1):
     """
     Erase subsets of the prompt and check if any of the generated substrings is harmful.
     This method is a certifeid defense against attacks where adversarial tokens could be inserted anywhere in the prompt,
@@ -280,7 +215,7 @@ def delete_by_indices(data_list, indices):
     return data_list
 
 
-def erase_and_check_insertion(prompt, pipeline, tokenizer, max_erase=5, min_length=4, num_adv=2, randomized=False, prompt_sampling_ratio=0.1):
+def erase_and_check_insertion(prompt, pipeline, tokenizer, max_erase=5, num_adv=2, randomized=False, prompt_sampling_ratio=0.1):
     """
     A generalized version of erase_and_check() that can defend against multiple adversarial prompts inserted into the prompt
     where each adversarial prompt is a contiguous block of adversarial tokens.
@@ -331,7 +266,7 @@ def erase_and_check_insertion(prompt, pipeline, tokenizer, max_erase=5, min_leng
     prompt_list = list(prompt_set)
 
     # Check if any of the erased strings is harmful
-    list_of_bools = is_harmful(prompt_list, pipeline, tokenizer)
+    list_of_bools = is_harmful(prompt_list, pipeline, tokenizer, randomized=randomized, prompt_sampling_ratio=prompt_sampling_ratio)
     return any(list_of_bools)
 
 
