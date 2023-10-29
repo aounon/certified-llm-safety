@@ -106,8 +106,8 @@ if use_classifier:
 else:
     # Load model and tokenizer
     model = "meta-llama/Llama-2-7b-chat-hf"
-    commit_id = "08751db2aca9bf2f7f80d2e516117a53d7450235"
-    # commit_id = "main"
+    # commit_id = "main"        # to use latest version
+    commit_id = "08751db2aca9bf2f7f80d2e516117a53d7450235"      # to reproduce results in paper
 
     print(f'Loading model {model}...')
     tokenizer = AutoTokenizer.from_pretrained(model, revision=commit_id)
@@ -128,8 +128,8 @@ if eval_type == "safe":
     # Safe prompts
     print("Evaluating safe prompts:")
     # Load prompts from text file
-    # with open("data/safe_prompts.txt", "r") as f:
-    with open("data/safe_prompts_no_punc.txt", "r") as f:
+    with open("data/safe_prompts.txt", "r") as f:
+    # with open("data/safe_prompts_no_punc_large.txt", "r") as f:
         prompts = f.readlines()
         prompts = [prompt.strip() for prompt in prompts]
 
