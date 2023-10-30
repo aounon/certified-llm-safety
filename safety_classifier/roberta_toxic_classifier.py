@@ -257,7 +257,7 @@ best_valid_loss = float('inf')
 # empty lists to store training and validation loss of each epoch
 train_losses=[]
 valid_losses=[]
-train_flag = True
+train_flag = False
 
 if train_flag == True:
 	#for each epoch

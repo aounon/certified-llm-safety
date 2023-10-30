@@ -328,6 +328,7 @@ with torch.no_grad():
   preds = model(test_seq.to(device))
   preds = preds.detach().cpu().numpy()
 
+import ipdb; ipdb.set_trace()
 preds = np.argmax(preds, axis = 1)
 print(f'Testing Accuracy = {100*torch.sum(torch.tensor(preds) == test_y)/test_y.shape[0]}%')
 print(classification_report(test_y, preds))

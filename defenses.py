@@ -13,7 +13,7 @@ PREFIXES = ["Understood",
             "intent "
             ]
 
-def is_harmful(prompts, pipeline, tokenizer, randomized=False, prompt_sampling_ratio=0.1, no_sys_prompt=False, use_classifier=False):
+def is_harmful(prompts, pipeline, tokenizer, safety_model, randomized=False, prompt_sampling_ratio=0.1, no_sys_prompt=False, use_classifier=False):
     """
     Check whether each prompt in the list of prompts is harmful or not.
     Args:
@@ -29,8 +29,26 @@ def is_harmful(prompts, pipeline, tokenizer, randomized=False, prompt_sampling_r
     print(use_classifier)
     if use_classifier:
         import ipdb; ipdb.set_trace()
-        list_of_bools = []
+        if randomized:
+            num_prompts_to_test = int(prompt_sampling_ratio * len(prompts))
+            prompts_to_test = random.sample(prompts, num_prompts_to_test)
+        else:
+            prompts_to_test = prompts     
 
+        from transformers import AutoModel, BertTokenizerFast
+        tokenizer = BertTokenizerFast.from_pretrained('bert-base-uncased')
+        prompts_to_test = torch.tensor(tokenizer.batch_encode_plus(prompts_to_test, max_length = 25, pad_to_max_length=True, truncation=True)['input_ids'])
+
+        # SAFE --> 1   || HARMFUL --> 0
+        safety_model.eval()
+        list_of_bools = []
+        for prompt in prompts_to_test:
+            preds = safety_model(prompt.reshape(1, -1)).detach().numpy()
+            preds = np.argmax(preds, axis = 1)
+            if preds == 1:
+                list_of_bools.append(False)
+            else:
+                list_of_bools.append(True)
     else:
         # Add the instructions to the prompts
         system_prompts = []
@@ -93,7 +111,8 @@ def erase_and_check(prompt, pipeline, tokenizer, max_erase=20, min_length=4, num
 
 def erase_and_check_suffix(prompt, pipeline, tokenizer, max_erase=20, min_length=4, randomized=False, prompt_sampling_ratio=0.1):
     
-    print(use_classifier)"""
+    print(use_classifier)
+    """
     Erase the prompt one token at a time from the end and check if any of the generated substrings is harmful.
     Args:
         prompt: The prompt to erase from.

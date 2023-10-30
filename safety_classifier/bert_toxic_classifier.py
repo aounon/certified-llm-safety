@@ -70,8 +70,8 @@ def read_text(filename):
 
 seed = 912
 
-safe_prompt = read_text("./data/safe_prompts.txt")
-harm_prompt = read_text("./data/harmful_prompts.txt")
+safe_prompt = read_text("../data/safe_prompts.txt")
+harm_prompt = read_text("../data/harmful_prompts.txt")
 prompt_data = pd.concat([safe_prompt, harm_prompt], ignore_index=True)
 prompt_data['Y'] = pd.Series(np.concatenate([np.ones(safe_prompt.shape[0]), np.zeros(harm_prompt.shape[0])])).astype(int)
 
@@ -309,7 +309,7 @@ best_valid_loss = float('inf')
 # empty lists to store training and validation loss of each epoch
 train_losses=[]
 valid_losses=[]
-train = True
+train = False
 
 if train == True:
 	#for each epoch
