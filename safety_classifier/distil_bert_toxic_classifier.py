@@ -264,28 +264,27 @@ valid_losses=[]
 train_flag = False
 
 if train_flag == True:
-	#for each epoch
-	for epoch in range(epochs):
-     
-	    print('\n Epoch {:} / {:}'.format(epoch + 1, epochs))
-    
-	    #train model
-	    train_loss, _ = train()
-    
-	    #evaluate model
-	    valid_loss, _ = evaluate()
-    
-	    #save the best model
-	    if valid_loss < best_valid_loss:
-        	best_valid_loss = valid_loss
-	        torch.save(model.state_dict(), 'distillbert_saved_weights.pt')
-    	
-	    # append training and validation loss
-	    train_losses.append(train_loss)
-	    valid_losses.append(valid_loss)
-	    
-	    print(f'\nTraining Loss: {train_loss:.3f}')
-	    print(f'Validation Loss: {valid_loss:.3f}')
+    # for each epoch
+    for epoch in range(epochs):
+        print('\n Epoch {:} / {:}'.format(epoch + 1, epochs))
+      
+        #train model
+        train_loss, _ = train()
+      
+        #evaluate model
+        valid_loss, _ = evaluate()
+      
+        #save the best model
+        if valid_loss < best_valid_loss:
+            best_valid_loss = valid_loss
+            torch.save(model.state_dict(), 'distillbert_saved_weights.pt')
+        
+        # append training and validation loss
+        train_losses.append(train_loss)
+        valid_losses.append(valid_loss)
+        
+        print(f'\nTraining Loss: {train_loss:.3f}')
+        print(f'Validation Loss: {valid_loss:.3f}')
 
 
 #load weights of best model
