@@ -27,22 +27,30 @@ def read_text(filename):
 
 seed = 912
 
-safe_prompt = read_text("../data/safe_prompts.txt")
-harm_prompt = read_text("../data/harmful_prompts.txt")
-prompt_data = pd.concat([safe_prompt, harm_prompt], ignore_index=True)
-prompt_data['Y'] = pd.Series(np.concatenate([np.ones(safe_prompt.shape[0]), np.zeros(harm_prompt.shape[0])])).astype(int)
+safe_prompt_train = read_text("../data/safe_prompts_train.txt")
+harm_prompt_train = read_text("../data/harmful_prompts_train.txt")
+prompt_data_train = pd.concat([safe_prompt_train, harm_prompt_train], ignore_index=True)
+prompt_data_train['Y'] = pd.Series(np.concatenate([np.ones(safe_prompt_train.shape[0]), np.zeros(harm_prompt_train.shape[0])])).astype(int)
+
+safe_prompt_test = read_text("../data/safe_prompts_test.txt")
+harm_prompt_test = read_text("../data/harmful_prompts_test.txt")
+prompt_data_test = pd.concat([safe_prompt_test, harm_prompt_test], ignore_index=True)
+prompt_data_test['Y'] = pd.Series(np.concatenate([np.ones(safe_prompt_test.shape[0]), np.zeros(harm_prompt_test.shape[0])])).astype(int)
 
 # split train dataset into train, validation and test sets
-train_text, temp_text, train_labels, temp_labels = train_test_split(prompt_data[0], prompt_data['Y'], 
-                                                                    random_state=seed, 
-                                                                    test_size=0.3, 
-                                                                    stratify=prompt_data['Y'])
+train_text, val_text, train_labels, val_labels = train_test_split(prompt_data_train[0], 
+								prompt_data_train['Y'], 
+								random_state=seed, 
+								test_size=0.2,
+								stratify=prompt_data_train['Y'])
 
+test_text = prompt_data_test[0]
+test_labels = prompt_data_test['Y']
 
-val_text, test_text, val_labels, test_labels = train_test_split(temp_text, temp_labels, 
-                                                                random_state=seed, 
-                                                                test_size=0.5, 
-                                                                stratify=temp_labels)
+#val_text, test_text, val_labels, test_labels = train_test_split(temp_text, temp_labels, 
+#                                                                random_state=seed, 
+#                                                                test_size=0.5, 
+#                                                                stratify=temp_labels)
 
 
 from transformers import DistilBertTokenizer, DistilBertForSequenceClassification
@@ -261,7 +269,7 @@ best_valid_loss = float('inf')
 # empty lists to store training and validation loss of each epoch
 train_losses=[]
 valid_losses=[]
-train_flag = False
+train_flag = True
 
 if train_flag == True:
     # for each epoch
@@ -277,7 +285,7 @@ if train_flag == True:
         #save the best model
         if valid_loss < best_valid_loss:
             best_valid_loss = valid_loss
-            torch.save(model.state_dict(), 'distillbert_saved_weights.pt')
+            torch.save(model.state_dict(), 'new_distillbert_saved_weights.pt')
         
         # append training and validation loss
         train_losses.append(train_loss)
@@ -288,7 +296,7 @@ if train_flag == True:
 
 
 #load weights of best model
-path = 'distillbert_saved_weights.pt'
+path = 'new_distillbert_saved_weights.pt'
 model.load_state_dict(torch.load(path))
 model.eval()
 
