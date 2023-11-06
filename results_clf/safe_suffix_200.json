@@ -8,8 +8,8 @@
     "time_per_prompt": 0.04008223056793213
   },
   "{'max_erase': 20}": {
-    "percent_safe": 98.0,
-    "time_per_prompt": 0.04907709240913391
+    "percent_safe": 83.5,
+    "time_per_prompt": 0.05439375758171081
   },
   "{'max_erase': 30}": {
     "percent_safe": 98.0,

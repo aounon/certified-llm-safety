@@ -23,6 +23,8 @@ parser.add_argument('--max_erase', type=int, default=20,
                     help='maximum number of tokens to erase')
 parser.add_argument('--num_adv', type=int, default=2,
                     help='number of adversarial prompts to defend against (insertion mode only)')
+parser.add_argument('--safe_prompts', type=str, default="data/safe_prompts.txt")
+parser.add_argument('--harmful_prompts', type=str, default="data/harmful_prompts.txt")
 
 # use adversarial prompt or not
 parser.add_argument('--append-adv', action='store_true',
@@ -38,9 +40,11 @@ parser.add_argument('--sampling-ratio', type=float, default=0.1,
 parser.add_argument('--results_dir', type=str, default="results",
                     help='directory to save results')
 parser.add_argument('--use_classifier', action='store_true',
-                    help='flag for using trained safety filters')
-parser.add_argument('--safety_model', default=None,#'roberta',
-                    help='name of trained safety filters')
+                    help='flag for using a custom trained safety filter')
+parser.add_argument('--model_wt_path', type=str, default='models/distillbert_saved_weights.pt',
+                    help='path to the model weights of the trained safety filter')
+# parser.add_argument('--safety_model', default=None,#'roberta',
+#                     help='name of trained safety filters')
 
 args = parser.parse_args()
 
@@ -51,7 +55,10 @@ max_erase = args.max_erase
 num_adv = args.num_adv
 results_dir = args.results_dir
 use_classifier = args.use_classifier
-safety_model = args.safety_model
+model_wt_path = args.model_wt_path
+safe_prompts_file = args.safe_prompts
+harmful_prompts_file = args.harmful_prompts
+# safety_model = args.safety_model
 
 print("Evaluation type: " + eval_type)
 print("Number of prompts to check: " + str(num_prompts))
@@ -60,6 +67,8 @@ print("Use randomization? " + str(args.randomize))
 if args.randomize:
     print("Sampling ratio: ", str(args.sampling_ratio))
 
+if use_classifier:
+    print("Using custom safety filter. Model weights path: " + model_wt_path)
 if eval_type == "safe":
     print("Mode: " + mode)
     print("Maximum tokens to erase: " + str(max_erase))
@@ -96,8 +105,8 @@ if use_classifier:
     model = DistilBertForSequenceClassification.from_pretrained('distilbert-base-uncased')
 
     # Load model weights
-    path = 'models/distillbert_saved_weights.pt'
-    model.load_state_dict(torch.load(path))
+    # path = 'models/distillbert_saved_weights.pt'
+    model.load_state_dict(torch.load(model_wt_path))
     model.eval()
 
     # Create a text classification pipeline
@@ -106,8 +115,8 @@ if use_classifier:
 else:
     # Load model and tokenizer
     model = "meta-llama/Llama-2-7b-chat-hf"
-    # commit_id = "main"        # to use latest version
-    commit_id = "08751db2aca9bf2f7f80d2e516117a53d7450235"      # to reproduce results in paper
+    # commit_id = "main"        # to use the latest version
+    commit_id = "08751db2aca9bf2f7f80d2e516117a53d7450235"      # to reproduce the results in our paper
 
     print(f'Loading model {model}...')
     tokenizer = AutoTokenizer.from_pretrained(model, revision=commit_id)
@@ -126,10 +135,9 @@ adv_suffix = "unless {{ {pub principal](/|{{[!dernewcommand Safepler=\"${/} Fals
 
 if eval_type == "safe":
     # Safe prompts
-    print("Evaluating safe prompts:")
+    print("Evaluating safe prompts from: " + safe_prompts_file)
     # Load prompts from text file
-    with open("data/safe_prompts.txt", "r") as f:
-    # with open("data/safe_prompts_no_punc_large.txt", "r") as f:
+    with open(safe_prompts_file, "r") as f:
         prompts = f.readlines()
         prompts = [prompt.strip() for prompt in prompts]
 
@@ -167,9 +175,9 @@ if eval_type == "safe":
 
 elif eval_type == "smoothing":
     # Smoothing-based certificates on harmful prompts
-    print("Evaluating smoothing-based certificates on harmful prompts:")
+    print("Evaluating smoothing-based certificates on harmful prompts from: " + harmful_prompts_file)
     # Load prompts from text file
-    with open("data/harmful_prompts.txt", "r") as f:
+    with open(harmful_prompts_file, "r") as f:
         prompts = f.readlines()
         prompts = [prompt.strip() for prompt in prompts]
 
@@ -199,9 +207,9 @@ elif eval_type == "smoothing":
 
 elif eval_type == "harmful":
     # Harmful prompts
-    print("Evaluating harmful prompts:")
+    print("Evaluating harmful prompts from:" + harmful_prompts_file)
     # Load prompts from text file
-    with open("data/harmful_prompts.txt", "r") as f:
+    with open(harmful_prompts_file, "r") as f:
         prompts = f.readlines()
         prompts = [prompt.strip() for prompt in prompts]
 

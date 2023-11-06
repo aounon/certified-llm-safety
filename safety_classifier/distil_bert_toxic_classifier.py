@@ -13,8 +13,8 @@ import transformers
 from transformers import RobertaTokenizer, RobertaForSequenceClassification
 
 # specify GPU
-device = 'cpu'  # torch.device("cuda")
-
+# device = 'cpu'  # torch.device("cuda")
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def read_text(filename):
     string = []
@@ -27,13 +27,17 @@ def read_text(filename):
 
 seed = 912
 
-safe_prompt_train = read_text("../data/safe_prompts_train.txt")
+safe_prompt_train = read_text("../data/safe_prompts_train_insertion_erased.txt")
 harm_prompt_train = read_text("../data/harmful_prompts_train.txt")
+# safe_prompt_train = read_text("../data/safe_prompts_train.txt")
+# harm_prompt_train = read_text("../data/harmful_prompts_train.txt")
 prompt_data_train = pd.concat([safe_prompt_train, harm_prompt_train], ignore_index=True)
 prompt_data_train['Y'] = pd.Series(np.concatenate([np.ones(safe_prompt_train.shape[0]), np.zeros(harm_prompt_train.shape[0])])).astype(int)
 
-safe_prompt_test = read_text("../data/safe_prompts_test.txt")
+safe_prompt_test = read_text("../data/safe_prompts_test_insertion_erased.txt")
 harm_prompt_test = read_text("../data/harmful_prompts_test.txt")
+# safe_prompt_test = read_text("../data/safe_prompts_test.txt")
+# harm_prompt_test = read_text("../data/harmful_prompts_test.txt")
 prompt_data_test = pd.concat([safe_prompt_test, harm_prompt_test], ignore_index=True)
 prompt_data_test['Y'] = pd.Series(np.concatenate([np.ones(safe_prompt_test.shape[0]), np.zeros(harm_prompt_test.shape[0])])).astype(int)
 
@@ -230,7 +234,7 @@ def evaluate():
     if step % 50 == 0 and not step == 0:
       
       # Calculate elapsed time in minutes.
-      elapsed = format_time(time.time() - t0)
+      # elapsed = format_time(time.time() - t0)
             
       # Report progress.
       print('  Batch {:>5,}  of  {:>5,}.'.format(step, len(val_dataloader)))

@@ -2,19 +2,27 @@
   "{'num_adv': 1}": {
     "{'max_erase': 0}": {
       "percent_safe": 100.0,
-      "time_per_prompt": 0.01424268881479899
+      "time_per_prompt": 0.015156936645507813
     },
     "{'max_erase': 2}": {
       "percent_safe": 96.66666666666667,
       "time_per_prompt": 0.09743801752726237
     },
     "{'max_erase': 4}": {
-      "percent_safe": 93.33333333333333,
-      "time_per_prompt": 0.1616541544596354
+      "percent_safe": 100.0,
+      "time_per_prompt": 0.1640903313954671
     },
     "{'max_erase': 6}": {
       "percent_safe": 86.66666666666667,
       "time_per_prompt": 0.23164646625518798
+    },
+    "{'max_erase': 8}": {
+      "percent_safe": 96.66666666666667,
+      "time_per_prompt": 0.26509824593861897
+    },
+    "{'max_erase': 12}": {
+      "percent_safe": 100.0,
+      "time_per_prompt": 0.34362452030181884
     }
   },
   "{'num_adv': 2}": {

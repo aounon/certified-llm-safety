@@ -2,6 +2,8 @@ import json
 import seaborn as sns
 import matplotlib.pyplot as plt
 import argparse
+import numpy as np
+import pandas as pd
 
 parser = argparse.ArgumentParser()
 parser.add_argument('results_file', type=str,
@@ -21,13 +23,13 @@ plot_data = []
 for num_adv in num_adv_values:
     for max_erase in max_erase_values:
         plot_data.append({
-            'num_adv': int(num_adv.split(': ')[1][:-1]),
+            # 'num_adv': int(num_adv.split(': ')[1][:-1]),
+            'model': num_adv.split(': ')[1][:-1],
             'max_erase': int(max_erase.split(': ')[1][:-1]),
             'time_per_prompt': data[num_adv][max_erase]['time_per_prompt']
         })
 
 # Convert the data to a DataFrame
-import pandas as pd
 df = pd.DataFrame(plot_data)
 
 # Set the seaborn style
@@ -37,7 +39,10 @@ sns.set_style("darkgrid", {"grid.color": ".85"})
 colors = ['tab:blue', 'tab:purple']
 plt.figure(figsize=(7, 6))
 # Bar plot
-sns.barplot(x='max_erase', y='time_per_prompt', hue='num_adv', data=df, palette=colors, alpha=0.7)
+sns.barplot(x='max_erase', y='time_per_prompt',
+            # hue='num_adv',
+            hue='model',
+            data=df, palette=colors, alpha=0.7)
 # for num_adv in [1, 2]:
 #     subset = df[df['num_adv'] == num_adv]
 #     plt.plot(subset['max_erase'], subset['time_per_prompt'], label=f'# Adv Prompts = {num_adv}', linewidth=2, color=colors[num_adv - 1])
@@ -48,12 +53,15 @@ plt.ylabel("Time per Prompt (sec)", fontsize=14)
 # plt.legend(loc='upper left', fontsize=14)
 # change labels for the bar plots in the legend
 handles, labels = plt.gca().get_legend_handles_labels()
-labels = ['# Insertions = 1', '# Insertions = 2']
+# labels = ['# Insertions = 1', '# Insertions = 2']
+labels = ['Llama 2', 'DistilBERT']
 plt.legend(handles, labels, loc='upper left', fontsize=14)
 # plt.xlim(-0.02, 6.02)
 # plt.xticks(range(0, 7, 2), fontsize=14)
-plt.ylim(0, 180)
-plt.yticks(range(0, 181, 45), fontsize=14)
+plt.ylim(0, 1.5)
+plt.yticks(np.arange(0, 1.51, 0.3), fontsize=14)
+# plt.ylim(0, 180)
+# plt.yticks(range(0, 181, 45), fontsize=14)
 plt.grid(False)
 
 plt.tick_params(axis='both', labelsize=14)

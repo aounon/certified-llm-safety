@@ -38,3 +38,35 @@ For comparison plot for the smoothing-based certificates, run:
 ```
 python plot\ scripts/plot_smoothing.py results/[result file].json
 ```
+
+## Installation
+1. Install Anaconda:
+    - Download .sh installer file from https://www.anaconda.com/products/distribution
+    - Run: 
+        ```
+        bash Anaconda3-2023.03-Linux-x86_64.sh
+        ```
+2. Create Conda Environment with Python:
+    ```
+    conda create -n [env] python=3.10
+    ```
+3. Activate environment:
+    ```
+    conda activate [env]
+    ```
+4. Install PyTorch with CUDA from: https://pytorch.org/
+	```
+    conda install pytorch torchvision torchaudio pytorch-cuda=11.8 -c pytorch -c nvidia
+    ```
+5. Install transformers from Huggingface:
+    ```
+    conda install -c huggingface transformers
+    ```
+6. Install accelerate:
+    ```
+    conda install -c conda-forge accelerate
+    ```
+7. Install `scikit-learn` (required for training safety classifiers):
+    ```
+    conda install -c anaconda scikit-learn
+    ```
