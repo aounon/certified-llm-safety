@@ -17,7 +17,7 @@ parser.add_argument('--num_prompts', type=int, default=2,
                     help='number of prompts to check')
 parser.add_argument('--mode', type=str, default="suffix", choices=["suffix", "insertion", "infusion"],
                     help='attack mode to defend against')
-parser.add_argument('--eval_type', type=str, default="safe", choices=["safe", "harmful", "smoothing"],
+parser.add_argument('--eval_type', type=str, default="safe", choices=["safe", "harmful", "smoothing", "empirical"],
                     help='type of prompts to evaluate')
 parser.add_argument('--max_erase', type=int, default=20,
                     help='maximum number of tokens to erase')
@@ -43,8 +43,6 @@ parser.add_argument('--use_classifier', action='store_true',
                     help='flag for using a custom trained safety filter')
 parser.add_argument('--model_wt_path', type=str, default='models/distillbert_saved_weights.pt',
                     help='path to the model weights of the trained safety filter')
-# parser.add_argument('--safety_model', default=None,#'roberta',
-#                     help='name of trained safety filters')
 
 args = parser.parse_args()
 
@@ -58,7 +56,6 @@ use_classifier = args.use_classifier
 model_wt_path = args.model_wt_path
 safe_prompts_file = args.safe_prompts
 harmful_prompts_file = args.harmful_prompts
-# safety_model = args.safety_model
 
 print("Evaluation type: " + eval_type)
 print("Number of prompts to check: " + str(num_prompts))
@@ -69,15 +66,13 @@ if args.randomize:
 
 if use_classifier:
     print("Using custom safety filter. Model weights path: " + model_wt_path)
-if eval_type == "safe":
+if eval_type == "safe" or eval_type == "empirical":
     print("Mode: " + mode)
     print("Maximum tokens to erase: " + str(max_erase))
     if mode == "insertion":
         print("Number of adversarial prompts to defend against: " + str(num_adv))
 elif eval_type == "smoothing":
     print("Maximum tokens to erase: " + str(max_erase))
-
-# print("Randomize: " + str(args.randomize))
 
 # Create results directory if it doesn't exist
 if use_classifier:
@@ -86,7 +81,7 @@ if not os.path.exists(results_dir):
     os.makedirs(results_dir)
 
 # Create results file
-if eval_type == "safe":
+if eval_type == "safe" or eval_type == "empirical":
     results_file = os.path.join(results_dir, f"{eval_type}_{mode}_{num_prompts}.json")
 elif eval_type == "harmful" or eval_type == "smoothing":
     results_file = os.path.join(results_dir, f"{eval_type}_{num_prompts}.json")
@@ -172,6 +167,46 @@ if eval_type == "safe":
     else:
         results[str(dict(max_erase = max_erase))] = dict(percent_safe = percent_safe, time_per_prompt = time_per_prompt)
     # print(results)
+
+elif eval_type == "empirical":
+    # Empirical performance on adversarial prompts
+    emp_results = {}
+    for adv_tok in range(0, 21, 2):
+        adv_prompts_file = "data/adversarial_prompts_t_" + str(adv_tok) + ".txt"
+        print("Evaluating on adversarial prompts from: " + adv_prompts_file)
+        # Load prompts from text file
+        with open(adv_prompts_file, "r") as f:
+            prompts = f.readlines()
+            prompts = [prompt.strip() for prompt in prompts]
+
+        # Sample a random subset of the prompts
+        prompts = random.sample(prompts, num_prompts)
+
+        # Check if the prompts are harmful
+        count_harmful = 0
+        start_time = time.time()
+        for i in range(num_prompts):
+            prompt = prompts[i]
+            harmful = erase_and_check(prompt, pipeline, tokenizer, max_erase=max_erase, num_adv=num_adv, randomized=args.randomize,
+                                    prompt_sampling_ratio=args.sampling_ratio, mode=mode)
+            
+            if harmful:
+                count_harmful += 1
+
+            current_time = time.time()
+            elapsed_time = current_time - start_time
+            time_per_prompt = elapsed_time / (i + 1)
+            percent_harmful = count_harmful / (i + 1) * 100
+            print("    Checking safety... " + progress_bar((i + 1) / num_prompts) \
+                + f' Detected harmful = {percent_harmful:5.1f}%' \
+                + f' Time/prompt = {time_per_prompt:5.1f}s', end="\r")
+            
+        print("")
+            
+        # Save results
+        emp_results[str(dict(adv_tok = adv_tok))] = dict(percent_harmful = percent_harmful, time_per_prompt = time_per_prompt)
+
+    results[str(dict(max_erase = max_erase))] = emp_results
 
 elif eval_type == "smoothing":
     # Smoothing-based certificates on harmful prompts
