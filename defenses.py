@@ -17,7 +17,7 @@ PREFIXES = ["Understood",
             ]
 
 
-def is_harmful(prompts, pipeline, tokenizer, randomized=False, prompt_sampling_ratio=0.1, no_sys_prompt=False, min_length=4):
+def is_harmful(prompts, pipeline, tokenizer, no_sys_prompt=False, min_length=4):
     """
     Check whether each prompt in the list of prompts is harmful or not.
     Args:
@@ -33,11 +33,14 @@ def is_harmful(prompts, pipeline, tokenizer, randomized=False, prompt_sampling_r
         A list of booleans indicating whether each prompt is harmful or not.
     """
 
-    if randomized:
-        num_prompts_to_test = int(prompt_sampling_ratio * len(prompts))
-        prompts_to_test = random.sample(prompts, num_prompts_to_test)
-    else:
-        prompts_to_test = prompts
+    # Moved to erase_and_check
+    # if randomized:
+    #     num_prompts_to_test = int(prompt_sampling_ratio * len(prompts))
+    #     prompts_to_test = random.sample(prompts, num_prompts_to_test)
+    # else:
+    #     prompts_to_test = prompts
+
+    prompts_to_test = prompts
 
     if 'TextGenerationPipeline' in str(type(pipeline)):
         # Using a pre-trained language model Llama-2 to detect harmful prompts
@@ -155,8 +158,14 @@ def erase_and_check_suffix(prompt, pipeline, tokenizer, max_erase=20, randomized
         erased_prompt = tokenizer.decode(erased_prompt_tokens)
         prompt_list.append(erased_prompt)
 
+    if randomized:
+        num_prompts_to_test = int(prompt_sampling_ratio * (len(prompt_list) - 1))
+        prompts_to_test = prompt_list[0:1] + random.sample(prompt_list[1:], num_prompts_to_test)
+    else:
+        prompts_to_test = prompt_list
+
     # Check if any of the erased strings is harmful
-    list_of_bools = is_harmful(prompt_list, pipeline, tokenizer, randomized=randomized, prompt_sampling_ratio=prompt_sampling_ratio)
+    list_of_bools = is_harmful(prompts_to_test, pipeline, tokenizer)
     return any(list_of_bools)
 
 def erase_and_check_infusion(prompt, pipeline, tokenizer, max_erase=2, randomized=False, prompt_sampling_ratio=0.1):
@@ -187,9 +196,14 @@ def erase_and_check_infusion(prompt, pipeline, tokenizer, max_erase=2, randomize
             erased_prompt = tokenizer.decode(erased_prompt_tokens)
             prompt_list.append(erased_prompt)
 
-    # print("Number of prompts to check: " + str(len(prompt_list)))
+    if randomized:
+        num_prompts_to_test = int(prompt_sampling_ratio * (len(prompt_list) - 1))
+        prompts_to_test = prompt_list[0:1] + random.sample(prompt_list[1:], num_prompts_to_test)
+    else:
+        prompts_to_test = prompt_list
+
     # Check if any of the erased strings is harmful
-    list_of_bools = is_harmful(prompt_list, pipeline, tokenizer, randomized=randomized, prompt_sampling_ratio=prompt_sampling_ratio)
+    list_of_bools = is_harmful(prompts_to_test, pipeline, tokenizer)
     return any(list_of_bools)
 
 def delete_by_indices(data_list, indices):
@@ -258,8 +272,14 @@ def erase_and_check_insertion(prompt, pipeline, tokenizer, max_erase=5, num_adv=
 
     prompt_list = list(prompt_set)
 
+    if randomized:
+        num_prompts_to_test = int(prompt_sampling_ratio * (len(prompt_list) - 1))
+        prompts_to_test = prompt_list[0:1] + random.sample(prompt_list[1:], num_prompts_to_test)
+    else:
+        prompts_to_test = prompt_list
+
     # Check if any of the erased strings is harmful
-    list_of_bools = is_harmful(prompt_list, pipeline, tokenizer, randomized=randomized, prompt_sampling_ratio=prompt_sampling_ratio)
+    list_of_bools = is_harmful(prompts_to_test, pipeline, tokenizer)
     return any(list_of_bools)
 
 

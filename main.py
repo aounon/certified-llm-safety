@@ -33,7 +33,7 @@ parser.add_argument('--append-adv', action='store_true',
 # -- Randomizer arguments -- #
 parser.add_argument('--randomize', action='store_true',
                     help="Use randomized check")
-parser.add_argument('--sampling-ratio', type=float, default=0.1,
+parser.add_argument('--sampling_ratio', type=float, default=0.1,
                     help="Ratio of subsequences to evaluate (if randomize=True)")
 # -------------------------- #
 
@@ -56,13 +56,15 @@ use_classifier = args.use_classifier
 model_wt_path = args.model_wt_path
 safe_prompts_file = args.safe_prompts
 harmful_prompts_file = args.harmful_prompts
+randomize = args.randomize
+sampling_ratio = args.sampling_ratio
 
 print("Evaluation type: " + eval_type)
 print("Number of prompts to check: " + str(num_prompts))
 print("Append adversarial prompts? " + str(args.append_adv))
-print("Use randomization? " + str(args.randomize))
-if args.randomize:
-    print("Sampling ratio: ", str(args.sampling_ratio))
+print("Use randomization? " + str(randomize))
+if randomize:
+    print("Sampling ratio: ", str(sampling_ratio))
 
 if use_classifier:
     print("Using custom safety filter. Model weights path: " + model_wt_path)
@@ -75,8 +77,8 @@ elif eval_type == "smoothing":
     print("Maximum tokens to erase: " + str(max_erase))
 
 # Create results directory if it doesn't exist
-if use_classifier:
-    results_dir = results_dir + "_clf"
+# if use_classifier:
+#     results_dir = results_dir + "_clf"
 if not os.path.exists(results_dir):
     os.makedirs(results_dir)
 
@@ -85,6 +87,13 @@ if eval_type == "safe" or eval_type == "empirical":
     results_file = os.path.join(results_dir, f"{eval_type}_{mode}_{num_prompts}.json")
 elif eval_type == "harmful" or eval_type == "smoothing":
     results_file = os.path.join(results_dir, f"{eval_type}_{num_prompts}.json")
+
+
+# Add tag for safety classifier and randomized check
+if use_classifier:
+    results_file = results_file.replace(".json", "_clf.json")
+if randomize:
+    results_file = results_file.replace(".json", f"_rand.json")
 
 # Load results if they exist
 if os.path.exists(results_file):
@@ -145,8 +154,8 @@ if eval_type == "safe":
     for i in range(num_prompts):
         prompt = prompts[i]
         if args.append_adv: prompt += adv_suffix
-        harmful = erase_and_check(prompt, pipeline, tokenizer, max_erase=max_erase, num_adv=num_adv, randomized=args.randomize,
-                                  prompt_sampling_ratio=args.sampling_ratio, mode=mode)
+        harmful = erase_and_check(prompt, pipeline, tokenizer, max_erase=max_erase, num_adv=num_adv, randomized=randomize,
+                                  prompt_sampling_ratio=sampling_ratio, mode=mode)
         
         if not harmful:
             count_safe += 1
@@ -187,8 +196,8 @@ elif eval_type == "empirical":
         start_time = time.time()
         for i in range(num_prompts):
             prompt = prompts[i]
-            harmful = erase_and_check(prompt, pipeline, tokenizer, max_erase=max_erase, num_adv=num_adv, randomized=args.randomize,
-                                    prompt_sampling_ratio=args.sampling_ratio, mode=mode)
+            harmful = erase_and_check(prompt, pipeline, tokenizer, max_erase=max_erase, num_adv=num_adv, randomized=randomize,
+                                    prompt_sampling_ratio=sampling_ratio, mode=mode)
             
             if harmful:
                 count_harmful += 1
@@ -206,7 +215,10 @@ elif eval_type == "empirical":
         # Save results
         emp_results[str(dict(adv_tok = adv_tok))] = dict(percent_harmful = percent_harmful, time_per_prompt = time_per_prompt)
 
-    results[str(dict(max_erase = max_erase))] = emp_results
+    if randomize:
+        results[str(dict(sampling_ratio = sampling_ratio))] = emp_results
+    else:
+        results[str(dict(max_erase = max_erase))] = emp_results
 
 elif eval_type == "smoothing":
     # Smoothing-based certificates on harmful prompts
