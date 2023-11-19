@@ -1,6 +1,6 @@
 ## Erase and Check via L0 optimization
 ## Method: Stochastic Relaxation via RelaxedBernoulli
-## argmax_{mask} loss(prompt \odot mask) s.t. mask has length 20 
+## argmax_{mask} loss(prompt \odot mask) s.t. has least possible sparsity 
 
 ## Note: masking is performed by simply doing mask * prompt, as 
 ## [PAD] token is mapping to 0 anyways
