@@ -1,5 +1,5 @@
 ## Erase and Check via L0 optimization
-## Method: Iterative Hard Thresholding
+## Method: Stochastic Relaxation via RelaxedBernoulli
 ## argmax_{mask} loss(prompt \odot mask) s.t. mask has length 20 
 
 ## Note: masking is performed by simply doing mask * prompt, as 
@@ -7,7 +7,6 @@
 
 import torch
 from transformers import DistilBertTokenizer, DistilBertForSequenceClassification
-from termcolor import colored
 import argparse
 
 
@@ -45,14 +44,12 @@ def adversarial_mask(input, model, tokenizer, word_embeddings,
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     # Initialize adversarial sequence and convert to tokens
-    tokens = torch.tensor(tokenizer.encode(input + ('!' * num_adv))).unsqueeze(0).to(device)
-    prompt_len = len(tokenizer.decode(torch.tensor(tokenizer.encode(input)).unsqueeze(0).to(device)[0][1:-1]))
+    tokens = torch.tensor(tokenizer.encode(input)).unsqueeze(0).to(device)
 
-    # Heuristic: Initialize to a probability value such that 
-    # about num_adv tokens are erased on average
-    mask_probs = torch.ones_like(tokens).float() * (1 - (num_adv / prompt_len))
+    # Initialize to all ones
+    mask_probs = torch.ones_like(tokens).float() * 0.
     mask_probs = torch.nn.Parameter(mask_probs.requires_grad_().to(device))
-    optimizer = torch.optim.SGD(params=mask_probs, lr=1e-3)
+    optimizer = torch.optim.SGD(params=[mask_probs], lr=1e-2, weight_decay=0.)
 
 
     for i in range(num_iters):
@@ -64,30 +61,33 @@ def adversarial_mask(input, model, tokenizer, word_embeddings,
         temp = init_temp / (i+1)
 
         # RelaxedBernoulli distribution
-        binary_mask = torch.distributions.relaxed_bernoulli.RelaxedBernoulli(temperature=temp, probs=torch.sigmoid(mask_probs))
-
-        # Candidate token to test
-        sample_tokens = (binary_mask.sample() * tokens).long()
-        
+        binary_mask = torch.distributions.relaxed_bernoulli.RelaxedBernoulli(temperature=temp, 
+                                                                             probs=torch.sigmoid(mask_probs))
+ 
         # Regularize mask such that most of the probabilities are close to one
         regularizer = (torch.sigmoid(mask_probs) - 1).pow(2).mean()
 
         # Get token embeddings
-        embeddings = word_embeddings(sample_tokens)
-        # Compute gradient of loss w.r.t. embeddings
-        embeddings.retain_grad()
-        output = model(inputs_embeds=embeddings, labels=torch.tensor([0]).to(device)) # Class 0 is harmful
+        embeddings = word_embeddings(tokens)
+
+        # Mask embeddings
+        sampled_mask = binary_mask.sample()
+        masked_embeddings = sampled_mask.unsqueeze(2) * embeddings
+        
+        # Class 0 is harmful
+        output = model(inputs_embeds=masked_embeddings, labels=torch.tensor([0]).to(device)) 
 
         loss = output.loss + reg_const * regularizer
         loss.backward() 
         optimizer.step()
 
-        if i % 5 == 0:
+        if i % 10 == 0:
             print("Iteration", i, " Loss: ",  loss.item(), 
                   " Output: ", output.loss.item(), 
                   " Reg: ", regularizer.item())
 
-            sampled_prompt = tokenizer.decode(sample_tokens[0][1:-1])
+            sampled_tokens = torch.round(sampled_mask * tokens).long()
+            sampled_prompt = tokenizer.decode((sampled_tokens)[0][1:-1])
             print("Sampled Prompt: " + sampled_prompt)
     
     return sampled_prompt
@@ -109,8 +109,8 @@ if __name__ == '__main__':
     model = DistilBertForSequenceClassification.from_pretrained('distilbert-base-uncased')
 
     # Load model weights
-    model_wt_path = 'models/distillbert_saved_weights.pt'
-    model.load_state_dict(torch.load(model_wt_path))
+    #model_wt_path = 'models/distillbert_saved_weights.pt'
+    #model.load_state_dict(torch.load(model_wt_path))
     model.to(device)
     model.eval()
 
@@ -130,12 +130,13 @@ if __name__ == '__main__':
         print("ORG PROMPT: " + input)
 
         sampled_prompt = adversarial_mask(input, model, tokenizer, 
-                                      model.distilbert.embeddings.word_embeddings,num_adv=num_adv,num_iters=100,
-                                      init_temp=0.5, reg_const=0.1)
-
-        
+                                      model.distilbert.embeddings.word_embeddings,
+                                      num_adv=num_adv,num_iters=1000,
+                                      init_temp=5, reg_const=1.0)
+ 
         print("SAMPLED ADV PROMPT: " + sampled_prompt)
         tokens = torch.tensor(tokenizer.encode(sampled_prompt)).unsqueeze(0).to(device)
         model_output = model(tokens)
         print("Prediction: " + ("safe" if model_output[0].argmax().item() == 1 else "harmful"))
         print()
+        break
