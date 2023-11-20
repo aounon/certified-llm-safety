@@ -1,9 +1,6 @@
 ## Erase and Check via approximate L0 optimization
 ## argmax_{mask} loss(prompt \odot mask) s.t. mak has least possible sparsity 
 
-## Note: masking is performed by simply doing mask * prompt, as 
-## [PAD] token is mapping to 0 anyways
-
 import torch
 from transformers import DistilBertTokenizer, DistilBertForSequenceClassification
 import argparse
@@ -87,6 +84,8 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Adversarial masks for the safety classifier.')
     parser.add_argument('--prompts_file', type=str, default='data/adversarial_prompts_t_21.txt', help='File containing prompts')
+    parser.add_argument('--num_iters', type=int, default=200, help='Number of iterations')
+
 
     args = parser.parse_args()
 
@@ -104,6 +103,7 @@ if __name__ == '__main__':
     model.eval()
 
     prompts_file = args.prompts_file
+    num_iters = args.num_iters
 
     # Load prompts
     prompts = []
@@ -124,7 +124,7 @@ if __name__ == '__main__':
 
         sampled_prompt = adversarial_mask(input, model, tokenizer, 
                                       word_embeddings,
-                                      num_iters=200,
+                                      num_iters=num_iters,
                                       init_temp=1., reg_const=1e-4)
  
         #print("MASKED PROMPT: " + sampled_prompt)
