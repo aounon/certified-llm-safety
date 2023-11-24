@@ -43,7 +43,7 @@ python plot\ scripts/plot_smoothing.py results/[result file].json
 ```
 
 ## Trained Safety Classifier
-To reproduce the results for the DistilBERT safety, first train the classifier using the script `bert_toxic_classifier.py` in the `safety_classifier` directory. Then, use the `main.py` script with the option `--use_classifier` to evaluate on safe and harmful prompts:
+To reproduce the results for the DistilBERT safety classifier, first train the classifier using the script `bert_toxic_classifier.py` in the `safety_classifier` directory. Then, use the `main.py` script with the option `--use_classifier` to evaluate on safe and harmful prompts:
 
 ```
 python main.py --num_prompts 120 --eval_type harmful --use_classifier --model_wt_path [path-to-model-weights] --harmful_prompts data/harmful_prompts_test.txt

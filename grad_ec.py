@@ -27,10 +27,8 @@ def is_harmful(prompt, model, tokenizer,
         # apply adversarial masking to find it can be 
         # converted to be labelled harmful
 
-        masked_prompt = adversarial_mask(prompt, model, tokenizer,
+        masked_prompt = grad_ec(prompt, model, tokenizer,
                         num_iters=num_iters, init_temp=init_temp, reg_const=reg_const)
-        
-        # print("Masked Prompt: " + masked_prompt)
     
         tokens = torch.tensor(tokenizer.encode(masked_prompt)).unsqueeze(0).to(device)
         model_output = model(tokens)
@@ -38,21 +36,24 @@ def is_harmful(prompt, model, tokenizer,
         output_class = model_output[0].argmax().item()
         return (output_class == 0)
 
-def adversarial_mask(prompt, model, tokenizer, 
-                     num_iters=50, init_temp=0.5, reg_const=0.1, 
-                     print_outputs=False):
+def grad_ec(prompt, model, tokenizer, word_embeddings, num_iters=50,
+            init_temp=0.5, reg_const=1e-3):
     """
-    Find an adversarial mask for the safety classifier 
+    This function implements GradEC -- a gradient based approximation of the erase-and-check procedure.
+    It optimizes a mask over the input prompt to erase tokens and check if the resulting
+    prompt is harmful or not. If the resulting sequence is harmful, it returns True, else False. It also
+    returns the erased prompt.
 
     Args:
-        input: Input prompt
+        prompt: Input prompt
         model: Safety classifier
         tokenizer: Tokenizer for the safety classifier
         word_embeddings: Embedding layer of the safety classifier
         num_iters: Number of iterations
-        init_temp: Initial temperature value for RelaxedBernoulli
+        init_temp: Initial temperature value for the sigmoid function
         reg_const: Regularization constant enforcing masks to have small sparsity
     Returns:
+        harmful: Whether the input prompt is harmful or not
         masked_prompt: input prompt with some tokens masked out 
     """
     # Set device
@@ -66,7 +67,9 @@ def adversarial_mask(prompt, model, tokenizer,
     mask_logits = torch.nn.Parameter(mask_logits.requires_grad_().to(device))
     optimizer = torch.optim.SGD(params=[mask_logits], lr=1e-1, momentum=0.9, weight_decay=0.)
 
-    word_embeddings = model.distilbert.embeddings.word_embeddings
+    # word_embeddings = model.distilbert.embeddings.word_embeddings
+
+    temp = max(init_temp, 1e-8) # Avoid division by zero
 
     for i in range(num_iters):
 
@@ -76,13 +79,23 @@ def adversarial_mask(prompt, model, tokenizer,
         # as temp -> 0; mask becomes binary
         temp = init_temp / (i+1)
 
-        binarized_mask = torch.sigmoid(mask_logits / temp)
+        mask_sigmoid = torch.sigmoid(mask_logits / temp)
+
+        # Erased prompt
+        binary_mask = (mask_sigmoid >= 0.5).float()
+        masked_tokens = torch.round(binary_mask * tokens).long()
+        masked_prompt = tokenizer.decode((masked_tokens)[0][1:-1])
+
+        # If erased prompt is harmful, return True
+        model_output = model(torch.tensor(tokenizer.encode(masked_prompt)).unsqueeze(0).to(device)) # Evaluates model on erased prompt
+        if model_output.logits[0].argmax().item() == 0:
+            return True, masked_prompt
 
         # Regularize mask such that most of the probabilities are close to one
         regularizer = (torch.sigmoid(mask_logits) - 1).pow(2).mean()
 
         embeddings = word_embeddings(tokens)
-        embeddings = binarized_mask.unsqueeze(2) * embeddings
+        embeddings = mask_sigmoid.unsqueeze(2) * embeddings
         
         # Class 0 is harmful
         output = model(inputs_embeds=embeddings, labels=torch.tensor([0]).to(device)) 
@@ -91,23 +104,17 @@ def adversarial_mask(prompt, model, tokenizer,
         loss.backward() 
         optimizer.step()
 
-        if i % 10 == 0 and print_outputs:
-            print("Iteration", i, " Loss: ",  loss.item(), 
-                  " Output: ", output.loss.item(), 
-                  " Reg: ", regularizer.item())
-            
-            masked_tokens = torch.round(binarized_mask * tokens).long()
-            masked_prompt = tokenizer.decode((masked_tokens)[0][1:-1])   
-            print("Masked Prompt: " + masked_prompt)
-            print("Prediction: " + ("safe" if output.logits[0].argmax().item() == 1 else "harmful"))
-            print(output.logits[0])
-            print()
-
-    final_mask = (mask_logits > 0.5).float()
-    masked_tokens = torch.round(final_mask * tokens).long()
+    mask_sigmoid = torch.sigmoid(mask_logits / temp)
+    binary_mask = (mask_sigmoid >= 0.5).float()
+    masked_tokens = torch.round(binary_mask * tokens).long()
     masked_prompt = tokenizer.decode((masked_tokens)[0][1:-1])
    
-    return masked_prompt
+    # If erased prompt is harmful, return True
+    model_output = model(torch.tensor(tokenizer.encode(masked_prompt)).unsqueeze(0).to(device)) # Evaluates model on erased prompt
+    if model_output.logits[0].argmax().item() == 0:
+        return True, masked_prompt
+    else:
+        return False, masked_prompt
 
 
 if __name__ == '__main__':
@@ -127,7 +134,7 @@ if __name__ == '__main__':
 
     # Load model weights
     model_wt_path = 'models/distillbert_saved_weights.pt'
-
+    
     model.load_state_dict(torch.load(model_wt_path))
     model.to(device)
     model.eval()
@@ -144,20 +151,18 @@ if __name__ == '__main__':
     print("Loaded " + str(len(prompts)) + " prompts.")
     list_of_bools = []
     start_time = time.time()
-    # Open file to write prompts
+
     for num_done, input_prompt in enumerate(prompts):
-
-        # print("PROMPT: " + input_prompt)
-
-        decision = is_harmful(input_prompt, model, tokenizer,
-                    num_iters=num_iters,
-                    init_temp=float(num_iters/100), reg_const=1e-3)
+        
+        decision, masked_prompt = grad_ec(input_prompt, model, tokenizer, model.distilbert.embeddings.word_embeddings,
+                    num_iters=num_iters, init_temp=float(num_iters/100), reg_const=1e-3)
         list_of_bools.append(decision)
 
+        # print("ORIGINAL PROMPT: " + input_prompt)
+        # print("Masked Prompt: " + masked_prompt)
         # print("Prediction: " + ("harmful" if decision else "safe"))
-
-        # input('Press enter to continue...')
-
+        # input('Press enter to continue')
+        
         percent_harmful = (sum(list_of_bools) / len(list_of_bools)) * 100.
         current_time = time.time()
         elapsed_time = current_time - start_time
@@ -167,4 +172,4 @@ if __name__ == '__main__':
             + f' Detected harmful = {percent_harmful:5.1f}%' \
             + f' Time/prompt = {time_per_prompt:5.1f}s', end="\r")
         
-    print(f"Detected harmful = {percent_harmful:5.1f}")
+    print("")

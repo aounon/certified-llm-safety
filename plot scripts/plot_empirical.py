@@ -3,6 +3,8 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 
+import argparse
+
 # Function to read data from a json file and return a DataFrame
 def read_data_from_json(json_file):
     with open(json_file, 'r') as file:
@@ -10,7 +12,8 @@ def read_data_from_json(json_file):
 
     plot_data = []
     for max_erase_key, adv_toks in data.items():
-        max_erase_value = float(json.loads(max_erase_key.replace("'", "\""))['sampling_ratio'])
+        max_erase_value = json.loads(max_erase_key.replace("'", "\""))['num_iters']
+        # max_erase_value = float(json.loads(max_erase_key.replace("'", "\""))['sampling_ratio'])
         # max_erase_value = int(json.loads(max_erase_key.replace("'", "\""))['max_erase'])
         for adv_tok_key, metrics in adv_toks.items():
             adv_tok_value = int(json.loads(adv_tok_key.replace("'", "\""))['adv_tok'])
@@ -35,7 +38,8 @@ def plot_data(df, filename='plot.png'):
     plot.set_ylabel('Percent Harmful', fontsize=14)
     plot.set_xticks(range(0, 21, 4))
     plt.tick_params(axis='both', labelsize=14)
-    plt.legend(title='Sampling Ratio', title_fontsize=14, fontsize=14)
+    plt.legend(title='# Iterations', title_fontsize=14, fontsize=14)
+    # plt.legend(title='Sampling Ratio', title_fontsize=14, fontsize=14)
     # plt.legend(title='Max Erase', title_fontsize=14, fontsize=14)
     
     # Save the figure
@@ -44,8 +48,14 @@ def plot_data(df, filename='plot.png'):
 
 # Main script execution
 if __name__ == "__main__":
-    # json_file_path = 'results_clf/empirical_suffix_120.json'  # Replace with your json file path
-    json_file_path = 'results/empirical_suffix_120_clf_rand.json'  # Replace with your json file path
+
+    parser = argparse.ArgumentParser(description='Plot empirical results.')
+    parser.add_argument('json_file_path', type=str, default='results/empirical_suffix_120_clf_rand.json', help='Path to json file')
+
+    args = parser.parse_args()
+
+    json_file_path = args.json_file_path
+
     df = read_data_from_json(json_file_path)
     plot_file = json_file_path.replace('.json', '.png')
     plot_data(df, plot_file)  # The plot will be saved as 'percent_harmful_vs_adv_tok.png'

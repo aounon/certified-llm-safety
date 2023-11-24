@@ -35,10 +35,10 @@ for i, v in enumerate(percent_safe_values[0:4]):
     elif i == 1:
         plt.text(max_erase_values[i] - (0.07 * max_erase_values[3]),  v - 5, f'{v:.1f}%', color='white', fontsize=14)
     else:
-        plt.text(max_erase_values[i] - (0.07 * max_erase_values[3]),  v + 1, f'{v:.1f}%', color='gray', fontsize=14)
+        plt.text(max_erase_values[i] - (0.07 * max_erase_values[3]),  v - 5, f'{v:.1f}%', color='white', fontsize=14)
+        # plt.text(max_erase_values[i] - (0.07 * max_erase_values[3]),  v + 1, f'{v:.1f}%', color='gray', fontsize=14)
 # plt.axhline(y=93.6, color='tab:blue', linewidth=2, linestyle='--', label='Certified Harmful Prompts (93.6%)')
-# plt.xlabel('Max Erase Length (= Certified Length)', fontsize=18, labelpad=10)
-plt.xlabel('Max Tokens Erased (= Certified Size)', fontsize=18, labelpad=10)
+plt.xlabel('Max Erase Length (= Certified Length)', fontsize=18, labelpad=10)
 plt.ylabel('% Safe Prompts Labeled Safe', fontsize=18)
 # plt.xlim(-0.05, 12.05)
 # plt.xticks(range(0, 13, 4))
