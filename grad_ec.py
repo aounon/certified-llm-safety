@@ -82,8 +82,10 @@ def grad_ec(prompt, model, tokenizer, word_embeddings, num_iters=50,
         mask_sigmoid = torch.sigmoid(mask_logits / temp)
 
         # Erased prompt
-        binary_mask = (mask_sigmoid >= 0.5).float()
-        masked_tokens = torch.round(binary_mask * tokens).long()
+        binary_mask = (mask_sigmoid >= 0.5).long()
+        # binary_mask = (mask_sigmoid >= 0.5).float()
+        masked_tokens = binary_mask * tokens
+        # masked_tokens = torch.round(binary_mask * tokens).long()
         masked_prompt = tokenizer.decode((masked_tokens)[0][1:-1])
 
         # If erased prompt is harmful, return True
@@ -105,8 +107,10 @@ def grad_ec(prompt, model, tokenizer, word_embeddings, num_iters=50,
         optimizer.step()
 
     mask_sigmoid = torch.sigmoid(mask_logits / temp)
-    binary_mask = (mask_sigmoid >= 0.5).float()
-    masked_tokens = torch.round(binary_mask * tokens).long()
+    # binary_mask = (mask_sigmoid >= 0.5).float()
+    # masked_tokens = torch.round(binary_mask * tokens).long()
+    binary_mask = (mask_sigmoid >= 0.5).long()
+    masked_tokens = binary_mask * tokens
     masked_prompt = tokenizer.decode((masked_tokens)[0][1:-1])
    
     # If erased prompt is harmful, return True

@@ -14,6 +14,9 @@ def is_harmful(prompt, model, tokenizer,
     """
     Wrap around the adversarial masking procedure as a "is_harmful" function
     """
+
+    # Set device
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     
     tokens = torch.tensor(tokenizer.encode(prompt)).unsqueeze(0).to(device)
     model_output = model(tokens)

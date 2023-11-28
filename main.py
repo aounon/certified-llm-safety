@@ -10,8 +10,11 @@ import argparse
 from transformers import DistilBertTokenizer, DistilBertForSequenceClassification
 from math import ceil
 
-from defenses import is_harmful, progress_bar, erase_and_check, erase_and_check_smoothing
+from defenses import is_harmful
+from defenses import progress_bar, erase_and_check, erase_and_check_smoothing
 from grad_ec import grad_ec
+
+# from adv_mask import is_harmful
 
 parser = argparse.ArgumentParser(description='Check safety of prompts.')
 parser.add_argument('--num_prompts', type=int, default=2,
@@ -254,6 +257,7 @@ elif eval_type == "grad_ec":
             harmful, _ = grad_ec(prompt, model, tokenizer, model.distilbert.embeddings.word_embeddings,
                         num_iters=num_iters, init_temp=float(num_iters/100), reg_const=1e-3)
             
+            # harmful = is_harmful(prompt, model, tokenizer, num_iters=num_iters, init_temp=float(num_iters/100), reg_const=1e-3)
             if harmful:
                 count_harmful += 1
 
@@ -313,8 +317,10 @@ elif eval_type == "harmful":
         prompts = [prompt.strip() for prompt in prompts]
 
     # Sample a random subset of the prompts
-    # prompts = random.sample(prompts, num_prompts)
-    prompts = random.choices(prompts, k=num_prompts)
+    if num_prompts <= len(prompts):
+        prompts = random.sample(prompts, num_prompts)
+    else:
+        prompts = random.choices(prompts, k=num_prompts)
 
     # Optionally append adversarial suffix
     if args.append_adv:

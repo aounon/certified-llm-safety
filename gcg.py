@@ -80,6 +80,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Generate adversarial prompts using GCG.')
     parser.add_argument('--num_adv', type=int, default=10, help='Number of adversarial tokens to append')
     parser.add_argument('--prompts_file', type=str, default='data/harmful_prompts_test.txt', help='File containing prompts')
+    parser.add_argument('--model_wt_path', type=str, default='models/distilbert_saved_weights.pt', help='Path to model weights')
 
     args = parser.parse_args()
 
@@ -91,7 +92,7 @@ if __name__ == '__main__':
     model = DistilBertForSequenceClassification.from_pretrained('distilbert-base-uncased')
 
     # Load model weights
-    model_wt_path = 'models/distillbert_saved_weights.pt'
+    model_wt_path = args.model_wt_path
     model.load_state_dict(torch.load(model_wt_path))
     model.to(device)
     model.eval()

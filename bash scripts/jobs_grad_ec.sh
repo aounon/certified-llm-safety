@@ -1,6 +1,6 @@
 #!/bin/sh
 
-for num_iters in 0 2 4 6 8
+for num_iters in 0 3 6 9 12
 do
     echo "num_iters $num_iters:"
     python main.py \
