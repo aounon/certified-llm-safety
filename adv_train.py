@@ -173,7 +173,7 @@ weights= torch.tensor(class_weights,dtype=torch.float)
 weights = weights.to(device)
 cross_entropy  = nn.NLLLoss(weight=weights) 
 
-num_epochs = 3
+num_epochs = 5
 erase_length = 5
 
 def train():
@@ -193,27 +193,33 @@ def train():
             # harmful
             
             if labels[i] == 0:
-                adv_prompt = gcg_suffix(original_prompts[i], model_adv, tokenizer, model.distilbert.embeddings.word_embeddings,
-                    model.distilbert.embeddings.word_embeddings.weight,
-                    num_adv=num_adv)
-                token_harmful = tokenizer.encode_plus(adv_prompt, max_length=25,
-                    pad_to_max_length=True,
-                    truncation=True)
-                new_seq = torch.tensor(token_harmful['input_ids']).to(device)
-                new_mask = torch.tensor(token_harmful['attention_mask']).to(device)
-                labels = torch.cat([labels, labels[i].unsqueeze(dim=0)])
-                sent_id = torch.cat([sent_id, new_seq.unsqueeze(dim=0)])
-                mask = torch.cat([mask, new_mask.unsqueeze(dim=0)])
+                continue
+                # adv_prompt = gcg_suffix(original_prompts[i], model_adv, tokenizer, model.distilbert.embeddings.word_embeddings,
+                #     model.distilbert.embeddings.word_embeddings.weight,
+                #     num_adv=num_adv)
+                # token_harmful = tokenizer.encode_plus(adv_prompt, max_length=25,
+                #     pad_to_max_length=True,
+                #     truncation=True)
+                # new_seq = torch.tensor(token_harmful['input_ids']).to(device)
+                # new_mask = torch.tensor(token_harmful['attention_mask']).to(device)
+                # labels = torch.cat([labels, labels[i].unsqueeze(dim=0)])
+                # sent_id = torch.cat([sent_id, new_seq.unsqueeze(dim=0)])
+                # mask = torch.cat([mask, new_mask.unsqueeze(dim=0)])
 
             # safe
             else:
-                new_mask = mask[i]
-                length_padding = len(sent_id[i][sent_id[i] == 0])
-                new_seq = sent_id[i]
-                new_seq[-(length_padding+erase_length):] = 0
-                labels = torch.cat([labels, labels[i].unsqueeze(dim=0)])
-                sent_id = torch.cat([sent_id, new_seq.unsqueeze(dim=0)])
-                mask = torch.cat([mask, new_mask.unsqueeze(dim=0)])
+                continue
+                
+                # new_mask = mask[i]
+                # length_padding = len(sent_id[i][sent_id[i] == 0])
+                # new_seq = sent_id[i]
+                # print(new_seq)
+                # new_seq[-(length_padding+erase_length):] = 0
+                # print(new_seq)
+                # labels = torch.cat([labels, labels[i].unsqueeze(dim=0)])
+                # print(labels)
+                # sent_id = torch.cat([sent_id, new_seq.unsqueeze(dim=0)])
+                # mask = torch.cat([mask, new_mask.unsqueeze(dim=0)])
 
         indices = torch.randperm(sent_id.shape[0]).to(device)
         sent_id = torch.index_select(sent_id, 0, indices)
@@ -335,8 +341,8 @@ if train_flag == True:
 
 # get predictions for test data
 #with torch.no_grad():
-#  preds = model(test_seq.to(device), test_mask.to(device))[0]
-#  preds = preds.detach().cpu().numpy()
+#    preds = model(test_seq.to(device), test_mask.to(device))[0]
+#    preds = preds.detach().cpu().numpy()
 
 #preds = np.argmax(preds, axis = 1)
 #print(f'Testing Accuracy = {100*torch.sum(torch.tensor(preds) == test_y)/test_y.shape[0]}%')
