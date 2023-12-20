@@ -65,7 +65,7 @@ if generate_test_harmful_adv:
         tokens = torch.tensor(tokenizer_adv.encode(adv_prompt)).unsqueeze(0).to(device)
         model_output = model_adv(tokens)
         pred = "safe" if model_output[0].argmax().item() == 1 else "harmful"
-        print("Prediction: " + pred)
+        #print("Prediction: " + pred)
         if pred == "safe":
             num_success += 1
         f.write(adv_prompt + '\n')
@@ -113,8 +113,8 @@ train_text, val_text, train_labels, val_labels = train_test_split(prompt_data_tr
 test_text = prompt_data_test[0]
 test_labels = prompt_data_test['Y']
 
-tokenizer = DistilBertTokenizer.from_pretrained('distilbert-base-uncased', cache_dir="/n/holyscratch01/hlakkaraju_lab/Lab/aaronli/models")
-model = DistilBertForSequenceClassification.from_pretrained('distilbert-base-uncased', cache_dir="/n/holyscratch01/hlakkaraju_lab/Lab/aaronli/models")
+tokenizer = DistilBertTokenizer.from_pretrained('distilbert-base-uncased')
+model = DistilBertForSequenceClassification.from_pretrained('distilbert-base-uncased')
 
 tokens_train = tokenizer.batch_encode_plus(
     train_text.tolist(),
@@ -180,6 +180,8 @@ def train():
     model.train()
     total_loss, total_accuracy = 0, 0
     total_preds=[]
+    num_total = 0
+    num_correct = 0
     for step, batch in enumerate(train_dataloader):
         # push the batch to gpu
         # (batch_size, 25), (batch_size, 25), (batch_size)
@@ -191,36 +193,41 @@ def train():
         #print(labels)
         for i in range(batch_size):
             # harmful
-            
             if labels[i] == 0:
-                continue
-                # adv_prompt = gcg_suffix(original_prompts[i], model_adv, tokenizer, model.distilbert.embeddings.word_embeddings,
-                #     model.distilbert.embeddings.word_embeddings.weight,
-                #     num_adv=num_adv)
-                # token_harmful = tokenizer.encode_plus(adv_prompt, max_length=25,
-                #     pad_to_max_length=True,
-                #     truncation=True)
-                # new_seq = torch.tensor(token_harmful['input_ids']).to(device)
-                # new_mask = torch.tensor(token_harmful['attention_mask']).to(device)
-                # labels = torch.cat([labels, labels[i].unsqueeze(dim=0)])
-                # sent_id = torch.cat([sent_id, new_seq.unsqueeze(dim=0)])
-                # mask = torch.cat([mask, new_mask.unsqueeze(dim=0)])
+                #continue
+                adv_prompt = gcg_suffix(original_prompts[i], model_adv, tokenizer, model.distilbert.embeddings.word_embeddings,
+                    model.distilbert.embeddings.word_embeddings.weight,
+                    num_adv=num_adv)
+                token_harmful = tokenizer.encode_plus(adv_prompt, max_length=25,
+                    pad_to_max_length=True,
+                    truncation=True)
+                new_label = labels[i].clone()
+                new_seq = torch.tensor(token_harmful['input_ids']).to(device)
+                new_mask = torch.tensor(token_harmful['attention_mask']).to(device)
+                labels = torch.cat([labels, new_label.unsqueeze(dim=0)])
+                sent_id = torch.cat([sent_id, new_seq.unsqueeze(dim=0)])
+                mask = torch.cat([mask, new_mask.unsqueeze(dim=0)])
 
             # safe
             else:
-                continue
+                #continue
                 
-                # new_mask = mask[i]
-                # length_padding = len(sent_id[i][sent_id[i] == 0])
-                # new_seq = sent_id[i]
-                # print(new_seq)
-                # new_seq[-(length_padding+erase_length):] = 0
-                # print(new_seq)
-                # labels = torch.cat([labels, labels[i].unsqueeze(dim=0)])
-                # print(labels)
-                # sent_id = torch.cat([sent_id, new_seq.unsqueeze(dim=0)])
-                # mask = torch.cat([mask, new_mask.unsqueeze(dim=0)])
+                new_mask = mask[i].clone()
+                length_padding = len(sent_id[i][sent_id[i] == 0])
+                new_seq = sent_id[i].clone()
+                new_label = labels[i].clone()
+                #print(new_seq)
+                new_seq[-(length_padding+erase_length):] = 0
+                #print(new_seq)
+                labels = torch.cat([labels, new_label.unsqueeze(dim=0)])
+                #print(labels)
+                sent_id = torch.cat([sent_id, new_seq.unsqueeze(dim=0)])
+                mask = torch.cat([mask, new_mask.unsqueeze(dim=0)])
+                #print(i)
+                #print(labels)
+                #print(sent_id)
 
+        
         indices = torch.randperm(sent_id.shape[0]).to(device)
         sent_id = torch.index_select(sent_id, 0, indices)
         mask = torch.index_select(mask, 0, indices)
@@ -231,6 +238,8 @@ def train():
         #break
         model.zero_grad()        
         preds = model(sent_id, mask)[0]
+        num_total += sent_id.shape[0]
+        num_correct += len(torch.argmax(preds, axis=1) == labels)
         loss = cross_entropy(preds, labels)
         total_loss = total_loss + loss.item()
         loss.backward()
@@ -245,7 +254,7 @@ def train():
     # reshape the predictions in form of (number of samples, no. of classes)
     total_preds  = np.concatenate(total_preds, axis=0)
 
-    return avg_loss, total_preds
+    return avg_loss, num_correct / num_total
 
 
 def evaluate():
@@ -264,7 +273,6 @@ def evaluate():
             
       # Report progress.
       print('  Batch {:>5,}  of  {:>5,}.'.format(step, len(val_dataloader)))
-
     # push the batch to gpu
     batch = [t.to(device) for t in batch]
 
@@ -307,8 +315,8 @@ if train_flag == True:
         print('\n Epoch {:} / {:}'.format(epoch + 1, num_epochs))
       
         #train model
-        train_loss, _ = train()
-      
+        train_loss, train_acc = train()
+        print(f"Epoch {epoch} training accuracy: {train_acc}")
         #evaluate model
         #valid_loss, _ = evaluate()
       
