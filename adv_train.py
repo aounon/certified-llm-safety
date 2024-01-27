@@ -25,8 +25,8 @@ def read_text(filename):
             string.append(l)
     return pd.DataFrame(string)
 
-tokenizer_adv = DistilBertTokenizer.from_pretrained('distilbert-base-uncased', cache_dir="/n/holyscratch01/hlakkaraju_lab/Lab/aaronli/models")
-model_adv = DistilBertForSequenceClassification.from_pretrained('distilbert-base-uncased', cache_dir="/n/holyscratch01/hlakkaraju_lab/Lab/aaronli/models")
+tokenizer_adv = DistilBertTokenizer.from_pretrained('distilbert-base-uncased')
+model_adv = DistilBertForSequenceClassification.from_pretrained('distilbert-base-uncased')
 
 model_wt_path = "../models/new_distilbert_saved_weights.pt"
 model_adv.load_state_dict(torch.load(model_wt_path))

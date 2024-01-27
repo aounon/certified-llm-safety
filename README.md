@@ -2,6 +2,8 @@
 
 This is the official repository for the code accompanying the paper [Certifying LLM Safety against Adversarial Prompting](https://arxiv.org/abs/2309.02705).
 
+**UPDATE**: The script `distil_bert_toxic_classifier.py` for training the DistilBERT safety classifier has been replaced with `safety_classifier.py`. See section [Trained Safety Classifier](#trained-safety-classifier) for details.
+
 ## Introduction
 Large language models (LLMs) released for public use are often fine-tuned to "align" their behavior to ensure they do not produce harmful or objectionable content. When prompted to produce inappropriate content, a well-aligned LLM should decline the user's request.
 Following is an example of how an aligned LLM would respond when prompted with a harmful prompt:
@@ -129,8 +131,13 @@ Similarly, for the insertion mode:
   <img src="results/comparison_safe_insertion_time.png" width="300"/>
 </p>
 
+And, for the infusion mode:
+<p align="center">
+  <img src="results/comparison_safe_infusion_acc.png" width="300" style="margin-right: 20px;"/>
+  <img src="results/comparison_safe_infusion_time.png" width="300"/>
+</p>
 
-To reproduce the results for the DistilBERT safety classifier, first train the classifier using the script `distil_bert_toxic_classifier.py` in the `safety_classifier` directory. We train the classifier with erased versions of the safe prompts, available in data files with the tag `_erased`, to help them recognize erased safe promtps as safe as well. Use the `main.py` script with the option `--use_classifier` to evaluate on safe and harmful prompts:
+To reproduce the results for the DistilBERT safety classifier, first train the classifier using the script `safety_classifier.py`. We train the classifier with erased versions of the safe prompts, available in data files with the tag `_erased`, to help them recognize erased safe promtps as safe. Use the `main.py` script with the option `--use_classifier` to evaluate on safe and harmful prompts:
 
 ```
 python main.py --num_prompts 120 --eval_type harmful --use_classifier --model_wt_path models/[model-weights.pt] --harmful_prompts data/harmful_prompts_test.txt
@@ -167,24 +174,6 @@ Following is the empirical performance of RandEC for different values of the sam
 <p align="center">
   <img src="results/empirical_suffix_120_clf_rand.png" width="400"/>
 </p>
-
-By checking only 20% of the erased subsequences (sampling ratio = 0.2), it achieves an accuracy of over 90%.
-
-## GradEC: Gradient-based Erase-and-Check
-We propose another emppirical defense, GradEC, that uses the gradients of the safety filter with respect to the input prompt to optimize the erased tokens to minimize the loss for the harmful class. We use the DistilBERT safety classifier for this optimization. Please see the corresponding section in the paper for more details on the objective function and the overall procedure.
-
-This propcedure is implemented in `grad_ec.py`.
-We vary the number of iterations in the optimization to control the strength and running time of the defense.
-Below is the empirical performance of GradEC on adversarial prompts of different lengths. Accuracy is above 90% in just 6 iterations.
-<p align="center">
-  <img src="results/grad_ec_120_clf.png" width="400"/>
-</p>
-
-Following is the command for producing the above results:
-```
-python main.py --num_prompts 120 --eval_type grad_ec --use_classifier --model_wt_path models/[model-weights.pt] --num_iters [# iterations]
-```
-
 
 ## Installation
 Follow the instructions below to set up the environment for the experiments.

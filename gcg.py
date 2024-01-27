@@ -5,7 +5,7 @@ import argparse
 
 
 def gcg_suffix(input, model, tokenizer, word_embeddings, embedding_matrix,
-               num_adv=10, num_iters=50, top_k=10, batch_size=100):
+               num_adv=10, num_iters=50, top_k=50, batch_size=500):
     """
     Generates adversarial suffix for the safety classifier using GCG.
     Args:
@@ -24,11 +24,14 @@ def gcg_suffix(input, model, tokenizer, word_embeddings, embedding_matrix,
     # Set device
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
+    if num_adv == 0:
+        return tokenizer.decode(tokenizer.encode(input, add_special_tokens=False))
+
     # Initialize adversarial sequence and convert to tokens
-    tokens = torch.tensor(tokenizer.encode(input + ('!' * num_adv))).unsqueeze(0).to(device)
+    tokens = torch.tensor(tokenizer.encode(input + ('*' * num_adv))).unsqueeze(0).to(device)
     prompt_len = len(tokenizer.decode(torch.tensor(tokenizer.encode(input)).unsqueeze(0).to(device)[0][1:-1]))
 
-    for _ in range(num_iters):
+    for iter in range(num_iters):
         # Get token embeddings
         embeddings = word_embeddings(tokens)
 
@@ -50,27 +53,41 @@ def gcg_suffix(input, model, tokenizer, word_embeddings, embedding_matrix,
 
         # Get top k adversarial tokens
         top_k_adv = (torch.topk(dot_prod, top_k).indices)[-num_adv-1:-1]    # Last token is [SEP]
+        
+        # # Create a batch of adversarial prompts by uniformly sampling from top k adversarial tokens
+        # tokens_batch = [tokens.clone().detach()]
+        # for _ in range(batch_size):
+        #     random_indices = torch.randint(0, top_k, (num_adv,)).to(device)
+        #     selected_tokens = torch.gather(top_k_adv, 1, random_indices.unsqueeze(1))
+        #     batch_item = tokens.clone().detach()
+        #     batch_item[0, -num_adv-1:-1] = selected_tokens.squeeze(1)
+        #     tokens_batch.append(batch_item)
 
-        # Create a batch of adversarial prompts by uniformly sampling from top k adversarial tokens
-        tokens_batch = [tokens.clone().detach()]
+        # Create a batch of adversarial prompts by replacing a random adversarial
+        # token with a random top k adversarial token
+        tokens_batch = []
         for _ in range(batch_size):
-            random_indices = torch.randint(0, top_k, (num_adv,)).to(device)
-            selected_tokens = torch.gather(top_k_adv, 1, random_indices.unsqueeze(1))
+            random_idx = torch.randint(0, num_adv, (1,)).to(device)
+            random_top_k_idx = torch.randint(0, top_k, (1,)).to(device)
             batch_item = tokens.clone().detach()
-            batch_item[0, -num_adv-1:-1] = selected_tokens.squeeze(1)
+            batch_item[0, -num_adv-1:-1][random_idx] = top_k_adv[random_idx, random_top_k_idx]
             tokens_batch.append(batch_item)
 
         tokens_batch = torch.cat(tokens_batch, dim=0)
 
-        # Pick batch elements with highest logit
+        # Pick batch elements with highest softmax probability for class 1
         output = model(inputs_embeds=word_embeddings(tokens_batch))
-        max_idx = torch.argmax(output.logits[:, 1])
-        tokens = tokens_batch[max_idx].unsqueeze(0)
+        output_softmax = torch.softmax(output.logits, dim=1)
+        max_softmax, max_idx = torch.max(output_softmax[:, 1], dim=0)
+        # max_logit, max_idx = torch.max(output.logits[:, 1], dim=0)
+        if iter == 0 or max_softmax > prev_max:
+            tokens = tokens_batch[max_idx].unsqueeze(0)
+            prev_max = max_softmax
 
         adv_prompt = tokenizer.decode(tokens[0][1:-1])
-        print("ADV PROMPT: " + adv_prompt[0:prompt_len] + colored(adv_prompt[prompt_len:], 'red'), end='\r')
+        # print("ADV PROMPT: " + adv_prompt[0:prompt_len] + colored(adv_prompt[prompt_len:], 'red'), end='\r')
     
-    print()
+    # print()
 
     return adv_prompt
 
@@ -80,9 +97,15 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Generate adversarial prompts using GCG.')
     parser.add_argument('--num_adv', type=int, default=10, help='Number of adversarial tokens to append')
     parser.add_argument('--prompts_file', type=str, default='data/harmful_prompts_test.txt', help='File containing prompts')
-    parser.add_argument('--model_wt_path', type=str, default='models/distilbert_saved_weights.pt', help='Path to model weights')
+    parser.add_argument('--model_wt_path', type=str, default='models/distilbert_suffix.pt', help='Path to model weights')
 
     args = parser.parse_args()
+
+    print("\n* * * * * Experiment Settings * * * * *")
+    print("Adversarial tokens: " + str(args.num_adv))
+    print("Prompts file: " + args.prompts_file)
+    print("Model weights path: " + args.model_wt_path)
+    print("* * * * * * * * * * * * * * * * * * * *\n", flush=True)
 
     # Set device
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -106,7 +129,7 @@ if __name__ == '__main__':
         for line in f:
             prompts.append(line.strip())
 
-    print("Loaded " + str(len(prompts)) + " prompts.")
+    print("Loaded " + str(len(prompts)) + " prompts.", flush=True)
 
     # Open file to write prompts
     f = open('data/adversarial_prompts_t_' + str(num_adv) + '.txt', 'w')
@@ -121,8 +144,8 @@ if __name__ == '__main__':
         # print("ADV PROMPT: " + adv_prompt)
         tokens = torch.tensor(tokenizer.encode(adv_prompt)).unsqueeze(0).to(device)
         model_output = model(tokens)
-        print("Prediction: " + ("safe" if model_output[0].argmax().item() == 1 else "harmful"))
-        print()
+        # print("Prediction: " + ("safe" if model_output[0].argmax().item() == 1 else "harmful"))
+        # print()
         f.write(adv_prompt + '\n')
         f.flush()
 

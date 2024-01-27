@@ -48,20 +48,22 @@ sns.barplot(x='max_erase', y='time_per_prompt',
 #     plt.plot(subset['max_erase'], subset['time_per_prompt'], label=f'# Adv Prompts = {num_adv}', linewidth=2, color=colors[num_adv - 1])
 
 # Set the labels, title, and legend
-plt.xlabel("Max Erase Length", fontsize=14)
-plt.ylabel("Time per Prompt (sec)", fontsize=14)
+plt.xlabel("Max Erase Length", fontsize=18, labelpad=10)
+plt.ylabel("Time per Prompt (sec)", fontsize=18, labelpad=10)
 # plt.legend(loc='upper left', fontsize=14)
 # change labels for the bar plots in the legend
 handles, labels = plt.gca().get_legend_handles_labels()
 # labels = ['# Insertions = 1', '# Insertions = 2']
 labels = ['Llama 2', 'DistilBERT']
-plt.legend(handles, labels, loc='upper left', fontsize=14)
+plt.legend(handles, labels, loc='upper left', fontsize=18)
 # plt.xlim(-0.02, 6.02)
 # plt.xticks(range(0, 7, 2), fontsize=14)
-plt.ylim(0, 1.5)
-plt.yticks(np.arange(0, 1.51, 0.3), fontsize=14)
-# plt.ylim(0, 15)
-# plt.yticks(np.arange(0, 15.1, 3), fontsize=14)
+# plt.ylim(0, 1.5)
+# plt.yticks(np.arange(0, 1.51, 0.3), fontsize=14)
+# plt.ylim(0, 60)
+# plt.yticks(np.arange(0, 61, 15), fontsize=14)
+plt.ylim(0, 15)
+plt.yticks(np.arange(0, 15.1, 3), fontsize=14)
 # plt.ylim(0, 180)
 # plt.yticks(range(0, 181, 45), fontsize=14)
 plt.grid(False)

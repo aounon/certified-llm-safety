@@ -34,10 +34,10 @@ def plot_data(df, filename='plot.png'):
     # plot = sns.lineplot(data=df, x='adv_tok', y='percent_harmful', hue='max_erase', marker='o', palette='tab10')
 
     # plot.set_title('Percent Harmful vs. Adversarial Tokens', fontsize=16)
-    plot.set_xlabel('Adversarial Sequence Length (in tokens)', fontsize=14)
-    plot.set_ylabel('Percent Harmful', fontsize=14)
+    plot.set_xlabel('Adversarial Sequence Length (in tokens)', fontsize=18, labelpad=10)
+    plot.set_ylabel('Percent Harmful', fontsize=18, labelpad=10)
     plot.set_xticks(range(0, 21, 4))
-    plt.tick_params(axis='both', labelsize=14)
+    plt.tick_params(axis='both', labelsize=18)
     plt.legend(title='# Iterations', title_fontsize=14, fontsize=14)
     # plt.legend(title='Sampling Ratio', title_fontsize=14, fontsize=14)
     # plt.legend(title='Max Erase', title_fontsize=14, fontsize=14)

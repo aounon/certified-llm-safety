@@ -1,3 +1,0 @@
-[submodule "llm-attacks"]
-	path = llm-attacks
-	url = https://github.com/llm-attacks/llm-attacks.git

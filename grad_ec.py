@@ -124,8 +124,9 @@ def grad_ec(prompt, model, tokenizer, word_embeddings, num_iters=50,
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Adversarial masks for the safety classifier.')
-    parser.add_argument('--prompts_file', type=str, default='data/adversarial_prompts_t_21.txt', help='File containing prompts')
+    parser.add_argument('--prompts_file', type=str, default='data/adversarial_prompts_t_20.txt', help='File containing prompts')
     parser.add_argument('--num_iters', type=int, default=50, help='Number of iterations')
+    parser.add_argument('--model_wt_path', type=str, default='models/distilbert_suffix.pt', help='Path to model weights')
 
     args = parser.parse_args()
 
@@ -137,7 +138,7 @@ if __name__ == '__main__':
     model = DistilBertForSequenceClassification.from_pretrained('distilbert-base-uncased')
 
     # Load model weights
-    model_wt_path = 'models/distillbert_saved_weights.pt'
+    model_wt_path = args.model_wt_path
     
     model.load_state_dict(torch.load(model_wt_path))
     model.to(device)
@@ -145,6 +146,12 @@ if __name__ == '__main__':
 
     prompts_file = args.prompts_file
     num_iters = args.num_iters
+
+    print('\n* * * * * Experiment Parameters * * * * *')
+    print('Prompts file: ' + prompts_file)
+    print('Number of iterations: ' + str(num_iters))
+    print('Model weights: ' + model_wt_path)
+    print('* * * * * * * * * * * * * * * * * * * * *\n')
 
     # Load prompts
     prompts = []
@@ -172,7 +179,7 @@ if __name__ == '__main__':
         elapsed_time = current_time - start_time
         time_per_prompt = elapsed_time / (num_done + 1)
 
-        print("Checking safety... " + progress_bar((num_done + 1) / len(prompts)) \
+        print("  Checking safety... " + progress_bar((num_done + 1) / len(prompts)) \
             + f' Detected harmful = {percent_harmful:5.1f}%' \
             + f' Time/prompt = {time_per_prompt:5.1f}s', end="\r")
         
