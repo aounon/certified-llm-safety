@@ -1,17 +1,15 @@
-import re
+# import re
 import warnings
 import pandas as pd
 import numpy as np
-# from transformers import AutoModelForSequenceClassification, AutoTokenizer, TextClassificationPipeline
 warnings.filterwarnings("ignore")
 
 import torch
 import torch.nn as nn
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report
-# import transformers
-# from transformers import RobertaTokenizer, RobertaForSequenceClassification
 from transformers import DistilBertTokenizer, DistilBertForSequenceClassification
+from transformers import AdamW
 from torch.utils.data import TensorDataset, DataLoader, WeightedRandomSampler, SequentialSampler
 
 import argparse
@@ -19,14 +17,6 @@ import argparse
 # specify GPU
 # device = 'cpu'  # torch.device("cuda")
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-# def read_text(filename):
-#     string = []
-#     with open(filename, "r") as f:
-#         full_text = f.read()
-#         for l in re.split(r"\n", full_text):
-#             string.append(l)
-#     return pd.DataFrame(string)
 
 def read_text(filename):
   with open(filename, "r") as f:
@@ -45,18 +35,16 @@ parser.add_argument('--save_path', type=str, default='models/distilbert_insertio
 
 args = parser.parse_args()
 
+# Train safety classifier
+
 # Load prompts
+# Class 1: Safe, Class 0: Harmful
 safe_prompt_train = read_text(args.safe_train)
 harm_prompt_train = read_text(args.harmful_train)
 prompt_data_train = pd.concat([safe_prompt_train, harm_prompt_train], ignore_index=True)
 prompt_data_train['Y'] = pd.Series(np.concatenate([np.ones(safe_prompt_train.shape[0]), np.zeros(harm_prompt_train.shape[0])])).astype(int)
 
-safe_prompt_test = read_text(args.safe_test)
-harm_prompt_test = read_text(args.harmful_test)
-prompt_data_test = pd.concat([safe_prompt_test, harm_prompt_test], ignore_index=True)
-prompt_data_test['Y'] = pd.Series(np.concatenate([np.ones(safe_prompt_test.shape[0]), np.zeros(harm_prompt_test.shape[0])])).astype(int)
-
-# split train dataset into train, validation and test sets
+# split train dataset into train and validation sets
 train_text, val_text, train_labels, val_labels = train_test_split(prompt_data_train[0], 
 								prompt_data_train['Y'], 
 								random_state=seed, 
@@ -65,14 +53,6 @@ train_text, val_text, train_labels, val_labels = train_test_split(prompt_data_tr
 
 # Count number of samples in each class in the training set
 count = train_labels.value_counts().to_dict()
-
-test_text = prompt_data_test[0]
-test_labels = prompt_data_test['Y']
-
-#val_text, test_text, val_labels, test_labels = train_test_split(temp_text, temp_labels, 
-#                                                                random_state=seed, 
-#                                                                test_size=0.5, 
-#                                                                stratify=temp_labels)
 
 # Load the tokenizer
 tokenizer = DistilBertTokenizer.from_pretrained('distilbert-base-uncased')
@@ -97,16 +77,7 @@ tokens_val = tokenizer.batch_encode_plus(
     truncation=True
 )
 
-# tokenize and encode sequences in the test set
-tokens_test = tokenizer.batch_encode_plus(
-    test_text.tolist(),
-    max_length = 25,
-    pad_to_max_length=True,
-    truncation=True
-)
-
 ## convert lists to tensors
-
 train_seq = torch.tensor(tokens_train['input_ids'])
 train_mask = torch.tensor(tokens_train['attention_mask'])
 train_y = torch.tensor(train_labels.tolist())
@@ -116,10 +87,6 @@ sample_weights = torch.tensor([1/count[i] for i in train_labels])
 val_seq = torch.tensor(tokens_val['input_ids'])
 val_mask = torch.tensor(tokens_val['attention_mask'])
 val_y = torch.tensor(val_labels.tolist())
-
-test_seq = torch.tensor(tokens_test['input_ids'])
-test_mask = torch.tensor(tokens_test['attention_mask'])
-test_y = torch.tensor(test_labels.tolist())
 
 #define a batch size
 batch_size = 32
@@ -146,9 +113,6 @@ val_dataloader = DataLoader(val_data, sampler = val_sampler, batch_size=batch_si
 # push the model to GPU
 model = model.to(device)
 
-# optimizer from hugging face transformers
-from transformers import AdamW
-
 # define the optimizer
 optimizer = AdamW(model.parameters(), lr = 1e-5)          # learning rate
 
@@ -172,13 +136,12 @@ loss_fn = nn.CrossEntropyLoss()
 # loss_fn = nn.NLLLoss()
 
 # number of training epochs
-epochs = 5
+epochs = 10
 
 # function to train the model
 def train():
-  
-  model.train()
 
+  model.train()
   total_loss, total_accuracy = 0, 0
   
   # empty list to save model predictions
@@ -320,6 +283,27 @@ if train_flag == True:
         print(f'\nTraining Loss: {training_loss:.3f}')
         print(f'Validation Loss: {validation_loss:.3f}')
 
+
+# Test safety classifier
+safe_prompt_test = read_text(args.safe_test)
+harm_prompt_test = read_text(args.harmful_test)
+prompt_data_test = pd.concat([safe_prompt_test, harm_prompt_test], ignore_index=True)
+prompt_data_test['Y'] = pd.Series(np.concatenate([np.ones(safe_prompt_test.shape[0]), np.zeros(harm_prompt_test.shape[0])])).astype(int)
+
+test_text = prompt_data_test[0]
+test_labels = prompt_data_test['Y']
+
+# tokenize and encode sequences in the test set
+tokens_test = tokenizer.batch_encode_plus(
+    test_text.tolist(),
+    max_length = 25,
+    pad_to_max_length=True,
+    truncation=True
+)
+
+test_seq = torch.tensor(tokens_test['input_ids'])
+test_mask = torch.tensor(tokens_test['attention_mask'])
+test_y = torch.tensor(test_labels.tolist())
 
 #load weights of best model
 path = args.save_path

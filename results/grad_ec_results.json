@@ -1,0 +1,10 @@
+{
+  "{'num_iters': 0}": {
+    "percent_harmful": 0.0,
+    "time_per_prompt": 0.009441091616948446
+  },
+  "{'num_iters': 10}": {
+    "percent_harmful": 0.0,
+    "time_per_prompt": 0.14352103273073832
+  }
+}

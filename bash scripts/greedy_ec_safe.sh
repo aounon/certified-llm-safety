@@ -3,11 +3,11 @@
 
 #!/bin/bash
 
-for num_iters in 0 10 20 30 40
+for num_iters in 0 2 4 6 8
 do
-    python grad_ec.py \
+    python greedy_ec.py \
         --prompts_file data/safe_prompts_test.txt \
         --model_wt_path models/distilbert_suffix.pt \
         --num_iters $num_iters \
-        --results_file results/grad_ec_safe_suffix.json
+        --results_file results/greedy_ec_safe_suffix.json
 done

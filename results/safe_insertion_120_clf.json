@@ -14,5 +14,23 @@
   "{'max_erase': 30}": {
     "percent_safe": 99.16666666666667,
     "time_per_prompt": 0.328850511709849
+  },
+  "{'num_adv': 1}": {
+    "{'max_erase': 0}": {
+      "percent_safe": 100.0,
+      "time_per_prompt": 0.007223927974700927
+    },
+    "{'max_erase': 4}": {
+      "percent_safe": 98.33333333333333,
+      "time_per_prompt": 0.15470996499061584
+    },
+    "{'max_erase': 8}": {
+      "percent_safe": 98.33333333333333,
+      "time_per_prompt": 0.24773959120114644
+    },
+    "{'max_erase': 12}": {
+      "percent_safe": 98.33333333333333,
+      "time_per_prompt": 0.2900996685028076
+    }
   }
 }

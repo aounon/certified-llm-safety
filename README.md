@@ -109,7 +109,7 @@ Similarly, for the infusion mode (100 prompts):
 
 Example command:
 ```
-python main.py --num_prompts 100 --mode infusion --eval_type safe --max_erase $max_erase --safe_prompts data/safe_prompts.txt
+python main.py --num_prompts 100 --mode infusion --eval_type safe --max_erase 3 --safe_prompts data/safe_prompts.txt
 ```
 Use the script `jobs_infusion.sh` in `bash scripts` to produce the results in the above plots.
 

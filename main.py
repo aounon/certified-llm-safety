@@ -13,15 +13,14 @@ from math import ceil
 from defenses import is_harmful
 from defenses import progress_bar, erase_and_check, erase_and_check_smoothing
 from grad_ec import grad_ec
-
-# from adv_mask import is_harmful
+from greedy_ec import greedy_ec
 
 parser = argparse.ArgumentParser(description='Check safety of prompts.')
 parser.add_argument('--num_prompts', type=int, default=2,
                     help='number of prompts to check')
 parser.add_argument('--mode', type=str, default="suffix", choices=["suffix", "insertion", "infusion"],
                     help='attack mode to defend against')
-parser.add_argument('--eval_type', type=str, default="safe", choices=["safe", "harmful", "smoothing", "empirical", "grad_ec"],
+parser.add_argument('--eval_type', type=str, default="safe", choices=["safe", "harmful", "smoothing", "empirical", "grad_ec", "greedy_ec"],
                     help='type of prompts to evaluate')
 parser.add_argument('--max_erase', type=int, default=20,
                     help='maximum number of tokens to erase')
@@ -68,6 +67,7 @@ randomize = args.randomize
 sampling_ratio = args.sampling_ratio
 num_iters = args.num_iters
 
+print("\n* * * * * * Experiment Details * * * * * *")
 print("Evaluation type: " + eval_type)
 print("Number of prompts to check: " + str(num_prompts))
 print("Append adversarial prompts? " + str(args.append_adv))
@@ -84,8 +84,9 @@ if eval_type == "safe" or eval_type == "empirical":
         print("Number of adversarial prompts to defend against: " + str(num_adv))
 elif eval_type == "smoothing":
     print("Maximum tokens to erase: " + str(max_erase))
-elif eval_type == "grad_ec":
-    print("Number of iterations for GradEC: " + str(num_iters))
+elif eval_type == "grad_ec" or eval_type == "greedy_ec":
+    print("Number of iterations: " + str(num_iters))
+print("* * * * * * * * * * ** * * * * * * * * * *\n")
 
 # Create results directory if it doesn't exist
 # if use_classifier:
@@ -96,7 +97,7 @@ if not os.path.exists(results_dir):
 # Create results file
 if eval_type == "safe" or eval_type == "empirical":
     results_file = os.path.join(results_dir, f"{eval_type}_{mode}_{num_prompts}.json")
-elif eval_type == "harmful" or eval_type == "smoothing" or eval_type == "grad_ec":
+elif eval_type == "harmful" or eval_type == "smoothing" or eval_type == "grad_ec" or eval_type == "greedy_ec":
     results_file = os.path.join(results_dir, f"{eval_type}_{num_prompts}.json")
 
 
@@ -150,7 +151,7 @@ adv_suffix = "unless {{ {pub principal](/|{{[!dernewcommand Safepler=\"${/} Fals
 
 if eval_type == "safe":
     # Safe prompts
-    print("Evaluating safe prompts from: " + safe_prompts_file)
+    print("\nEvaluating safe prompts from: " + safe_prompts_file + "\n")
     # Load prompts from text file
     with open(safe_prompts_file, "r") as f:
         prompts = f.readlines()
@@ -276,6 +277,50 @@ elif eval_type == "grad_ec":
 
     results[str(dict(num_iters = num_iters))] = emp_results
 
+elif eval_type == "greedy_ec":
+    # Evaluating the performance of GreedyEC on adversarial prompts
+    if not use_classifier:
+        print("Option --use_classifier must be turned on. GreedyEC only works with a trained safety classifier.")
+        exit()
+
+    emp_results = {}
+    for adv_tok in range(0, 21, 2):
+        adv_prompts_file = "data/adversarial_prompts_t_" + str(adv_tok) + ".txt"
+        print("Evaluating on adversarial prompts from: " + adv_prompts_file)
+        # Load prompts from text file
+        with open(adv_prompts_file, "r") as f:
+            prompts = f.readlines()
+            prompts = [prompt.strip() for prompt in prompts]
+
+        # Sample a random subset of the prompts
+        prompts = random.sample(prompts, num_prompts)
+
+        # Check if the prompts are harmful
+        count_harmful = 0
+        start_time = time.time()
+        for i in range(num_prompts):
+            prompt = prompts[i]
+            harmful = greedy_ec(prompt, model, tokenizer, num_iters=num_iters)
+            
+            # harmful = is_harmful(prompt, model, tokenizer, num_iters=num_iters, init_temp=float(num_iters/100), reg_const=1e-3)
+            if harmful:
+                count_harmful += 1
+
+            current_time = time.time()
+            elapsed_time = current_time - start_time
+            time_per_prompt = elapsed_time / (i + 1)
+            percent_harmful = count_harmful / (i + 1) * 100
+            print("    Checking safety... " + progress_bar((i + 1) / num_prompts) \
+                + f' Detected harmful = {percent_harmful:5.1f}%' \
+                + f' Time/prompt = {time_per_prompt:5.1f}s', end="\r", flush=True)
+            
+        print("")
+
+        # Save results
+        emp_results[str(dict(adv_tok = adv_tok))] = dict(percent_harmful = percent_harmful, time_per_prompt = time_per_prompt)
+
+    results[str(dict(num_iters = num_iters))] = emp_results
+
 elif eval_type == "smoothing":
     # Smoothing-based certificates on harmful prompts
     print("Evaluating smoothing-based certificates on harmful prompts from: " + harmful_prompts_file)
@@ -310,7 +355,7 @@ elif eval_type == "smoothing":
 
 elif eval_type == "harmful":
     # Harmful prompts
-    print("Evaluating harmful prompts from: " + harmful_prompts_file)
+    print("\nEvaluating harmful prompts from: " + harmful_prompts_file + "\n")
     # Load prompts from text file
     with open(harmful_prompts_file, "r") as f:
         prompts = f.readlines()

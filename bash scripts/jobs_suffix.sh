@@ -1,17 +1,17 @@
 #!/bin/bash
 
-# Evaluation script for suffix attacks with max erase running from 0 to 40 with step 10
+# Evaluation script for suffix attacks with max erase running from 0 to 30 with step 10
 
 # Llama 2
-# for max_erase in 0 10 20 30
-# do
-#     python main.py \
-#         --num_prompts 520 \
-#         --mode suffix \
-#         --eval_type safe \
-#         --max_erase $max_erase \
-#         --safe_prompts data/safe_prompts.txt \
-# done
+for max_erase in 0 10 20 30
+do
+    python main.py \
+        --num_prompts 520 \
+        --mode suffix \
+        --eval_type safe \
+        --max_erase $max_erase \
+        --safe_prompts data/safe_prompts.txt
+done
 
 # DistilBERT classifier
 for max_erase in 0 10 20 30

@@ -3,8 +3,7 @@
 
 import torch
 from transformers import DistilBertTokenizer, DistilBertForSequenceClassification
-import argparse
-import time
+import argparse, time, json, os
 
 from defenses import progress_bar
 
@@ -127,6 +126,7 @@ if __name__ == '__main__':
     parser.add_argument('--prompts_file', type=str, default='data/adversarial_prompts_t_20.txt', help='File containing prompts')
     parser.add_argument('--num_iters', type=int, default=50, help='Number of iterations')
     parser.add_argument('--model_wt_path', type=str, default='models/distilbert_suffix.pt', help='Path to model weights')
+    parser.add_argument('--results_file', type=str, default='results/grad_ec_results.json', help='Path to results file')
 
     args = parser.parse_args()
 
@@ -146,6 +146,7 @@ if __name__ == '__main__':
 
     prompts_file = args.prompts_file
     num_iters = args.num_iters
+    results_file = args.results_file
 
     print('\n* * * * * Experiment Parameters * * * * *')
     print('Prompts file: ' + prompts_file)
@@ -162,6 +163,15 @@ if __name__ == '__main__':
     print("Loaded " + str(len(prompts)) + " prompts.")
     list_of_bools = []
     start_time = time.time()
+
+    # Open results file and load previous results JSON as a dictionary
+    results_dict = {}
+    # Create results file if it does not exist
+    if not os.path.exists(results_file):
+        with open(results_file, 'w') as f:
+            json.dump(results_dict, f)
+    with open(results_file, 'r') as f:
+        results_dict = json.load(f)
 
     for num_done, input_prompt in enumerate(prompts):
         
@@ -184,3 +194,8 @@ if __name__ == '__main__':
             + f' Time/prompt = {time_per_prompt:5.1f}s', end="\r")
         
     print("")
+
+    # Save results
+    results_dict[str(dict(num_iters = num_iters))] = dict(percent_harmful = percent_harmful, time_per_prompt = time_per_prompt)
+    with open(results_file, 'w') as f:
+        json.dump(results_dict, f, indent=2)
