@@ -1,6 +1,7 @@
 #!/bin/sh
 
-for num_iters in 0 10 20 30 40
+for num_iters in 0 5 10 25 100
+# for num_iters in 0 25 50 75 100
 do
     echo "num_iters $num_iters:"
     python main.py \

@@ -2,19 +2,19 @@
   "{'model': 'Llama 2'}" : {
     "{'max_erase': 0}": {
       "percent_safe": 100.0,
-      "time_per_prompt": 0.1123404269035046
+      "time_per_prompt": 0.10831921238165636
     },
     "{'max_erase': 10}": {
-      "percent_safe": 94.8076923076923,
-      "time_per_prompt": 1.2040779737325815
+      "percent_safe": 97.5,
+      "time_per_prompt": 1.0801705938119155
     },
     "{'max_erase': 20}": {
-      "percent_safe": 95.1923076923077,
-      "time_per_prompt": 1.3406176168185013
+      "percent_safe": 97.3076923076923,
+      "time_per_prompt": 1.1871471510483669
     },
     "{'max_erase': 30}": {
-      "percent_safe": 95.0,
-      "time_per_prompt": 1.3617364988877223
+      "percent_safe": 97.3076923076923,
+      "time_per_prompt": 1.1682664045920739
     }
   },
   "{'model': 'DistilBERT'}" : {

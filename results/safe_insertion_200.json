@@ -1,36 +1,20 @@
 {
-  "{'max_erase': 0}": {
-    "percent_safe": 100.0,
-    "time_per_prompt": 0.11423804879188537
-  },
-  "{'max_erase': 4}": {
-    "percent_safe": 100.0,
-    "time_per_prompt": 5.444696307182312
-  },
-  "{'max_erase': 8}": {
-    "percent_safe": 93.0,
-    "time_per_prompt": 9.496084061861039
-  },
-  "{'max_erase': 12}": {
-    "percent_safe": 89.0,
-    "time_per_prompt": 10.988514788150788
-  },
   "{'num_adv': 1}": {
     "{'max_erase': 0}": {
       "percent_safe": 100.0,
-      "time_per_prompt": 0.10985047101974488
+      "time_per_prompt": 0.11227636456489563
     },
     "{'max_erase': 4}": {
-      "percent_safe": 97.5,
-      "time_per_prompt": 5.434858822822571
+      "percent_safe": 97.0,
+      "time_per_prompt": 5.785537713766098
     },
     "{'max_erase': 8}": {
-      "percent_safe": 94.0,
-      "time_per_prompt": 9.061473056077958
+      "percent_safe": 94.5,
+      "time_per_prompt": 9.389040935039521
     },
     "{'max_erase': 12}": {
-      "percent_safe": 82.5,
-      "time_per_prompt": 11.026328545808791
+      "percent_safe": 90.5,
+      "time_per_prompt": 11.268730491399765
     }
   }
 }

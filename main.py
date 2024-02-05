@@ -86,7 +86,7 @@ elif eval_type == "smoothing":
     print("Maximum tokens to erase: " + str(max_erase))
 elif eval_type == "grad_ec" or eval_type == "greedy_ec":
     print("Number of iterations: " + str(num_iters))
-print("* * * * * * * * * * ** * * * * * * * * * *\n")
+print("* * * * * * * * * * ** * * * * * * * * * *\n", flush=True)
 
 # Create results directory if it doesn't exist
 # if use_classifier:
@@ -256,7 +256,7 @@ elif eval_type == "grad_ec":
         for i in range(num_prompts):
             prompt = prompts[i]
             harmful, _ = grad_ec(prompt, model, tokenizer, model.distilbert.embeddings.word_embeddings,
-                        num_iters=num_iters, init_temp=float(num_iters/100), reg_const=1e-3)
+                        num_iters=num_iters)        # , init_temp=float(num_iters/100), reg_const=1e-3)
             
             # harmful = is_harmful(prompt, model, tokenizer, num_iters=num_iters, init_temp=float(num_iters/100), reg_const=1e-3)
             if harmful:

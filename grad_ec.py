@@ -4,6 +4,7 @@
 import torch
 from transformers import DistilBertTokenizer, DistilBertForSequenceClassification
 import argparse, time, json, os
+import math
 
 from defenses import progress_bar
 
@@ -35,8 +36,7 @@ def is_harmful(prompt, model, tokenizer,
         output_class = model_output[0].argmax().item()
         return (output_class == 0)
 
-def grad_ec(prompt, model, tokenizer, word_embeddings, num_iters=50,
-            init_temp=0.5, reg_const=1e-3):
+def grad_ec(prompt, model, tokenizer, word_embeddings, num_iters=50):
     """
     This function implements GradEC -- a gradient based approximation of the erase-and-check procedure.
     It optimizes a mask over the input prompt to erase tokens and check if the resulting
@@ -49,8 +49,6 @@ def grad_ec(prompt, model, tokenizer, word_embeddings, num_iters=50,
         tokenizer: Tokenizer for the safety classifier
         word_embeddings: Embedding layer of the safety classifier
         num_iters: Number of iterations
-        init_temp: Initial temperature value for the sigmoid function
-        reg_const: Regularization constant enforcing masks to have small sparsity
     Returns:
         harmful: Whether the input prompt is harmful or not
         masked_prompt: input prompt with some tokens masked out 
@@ -64,21 +62,13 @@ def grad_ec(prompt, model, tokenizer, word_embeddings, num_iters=50,
     # Initialize to all zeros
     mask_logits = torch.zeros_like(tokens).float()
     mask_logits = torch.nn.Parameter(mask_logits.requires_grad_().to(device))
-    optimizer = torch.optim.SGD(params=[mask_logits], lr=1e-1, momentum=0.9, weight_decay=0.)
-
-    # word_embeddings = model.distilbert.embeddings.word_embeddings
-
-    temp = max(init_temp, 1e-8) # Avoid division by zero
+    optimizer = torch.optim.SGD(params=[mask_logits], lr=10.0, momentum=0.0, weight_decay=1e-2)
 
     for i in range(num_iters):
 
         optimizer.zero_grad()
 
-        # Critical heuristic: Decay temperature over time
-        # as temp -> 0; mask becomes binary
-        temp = init_temp / (i+1)
-
-        mask_sigmoid = torch.sigmoid(mask_logits / temp)
+        mask_sigmoid = torch.sigmoid(mask_logits)
 
         # Erased prompt
         binary_mask = (mask_sigmoid >= 0.5).long()
@@ -92,20 +82,17 @@ def grad_ec(prompt, model, tokenizer, word_embeddings, num_iters=50,
         if model_output.logits[0].argmax().item() == 0:
             return True, masked_prompt
 
-        # Regularize mask such that most of the probabilities are close to one
-        regularizer = (torch.sigmoid(mask_logits) - 1).pow(2).mean()
-
         embeddings = word_embeddings(tokens)
         embeddings = mask_sigmoid.unsqueeze(2) * embeddings
         
         # Class 0 is harmful
         output = model(inputs_embeds=embeddings, labels=torch.tensor([0]).to(device)) 
 
-        loss = output.loss + reg_const * regularizer
+        loss = output.loss
         loss.backward() 
         optimizer.step()
 
-    mask_sigmoid = torch.sigmoid(mask_logits / temp)
+    mask_sigmoid = torch.sigmoid(mask_logits)
     # binary_mask = (mask_sigmoid >= 0.5).float()
     # masked_tokens = torch.round(binary_mask * tokens).long()
     binary_mask = (mask_sigmoid >= 0.5).long()
@@ -176,7 +163,7 @@ if __name__ == '__main__':
     for num_done, input_prompt in enumerate(prompts):
         
         decision, masked_prompt = grad_ec(input_prompt, model, tokenizer, model.distilbert.embeddings.word_embeddings,
-                    num_iters=num_iters, init_temp=float(num_iters/100), reg_const=1e-3)
+                    num_iters=num_iters)
         list_of_bools.append(decision)
 
         # print("ORIGINAL PROMPT: " + input_prompt)

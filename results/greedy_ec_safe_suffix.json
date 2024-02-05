@@ -1,0 +1,22 @@
+{
+  "{'num_iters': 0}": {
+    "percent_harmful": 0.0,
+    "time_per_prompt": 0.005916082859039306
+  },
+  "{'num_iters': 3}": {
+    "percent_harmful": 0.8333333333333334,
+    "time_per_prompt": 0.018103021383285522
+  },
+  "{'num_iters': 6}": {
+    "percent_harmful": 2.5,
+    "time_per_prompt": 0.028129305442174277
+  },
+  "{'num_iters': 9}": {
+    "percent_harmful": 3.3333333333333335,
+    "time_per_prompt": 0.03841198484102885
+  },
+  "{'num_iters': 12}": {
+    "percent_harmful": 3.3333333333333335,
+    "time_per_prompt": 0.044788070519765216
+  }
+}

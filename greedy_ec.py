@@ -142,5 +142,6 @@ if __name__ == '__main__':
 
     # Save results
     results_dict[str(dict(num_iters = num_iters))] = dict(percent_harmful = percent_harmful, time_per_prompt = time_per_prompt)
+    print("Saving results to", results_file)
     with open(results_file, 'w') as f:
         json.dump(results_dict, f, indent=2)

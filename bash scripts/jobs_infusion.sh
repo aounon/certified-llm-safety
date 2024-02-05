@@ -1,7 +1,8 @@
 #!/bin/sh
 
 # using DistilBERT safety classifier
-for max_erase in 0 1 2 3
+# for max_erase in 0 1 2 3
+for max_erase in 0 2 4 6
 do
     python main.py \
         --num_prompts 120 \

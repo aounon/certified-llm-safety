@@ -2,178 +2,239 @@
 
 This is the official repository for the code accompanying the paper [Certifying LLM Safety against Adversarial Prompting](https://arxiv.org/abs/2309.02705).
 
-**UPDATE**: The script `distil_bert_toxic_classifier.py` for training the DistilBERT safety classifier has been replaced with `safety_classifier.py`. See section [Trained Safety Classifier](#trained-safety-classifier) for details.
+<!-- **UPDATE**: The script `distil_bert_toxic_classifier.py` for training the DistilBERT safety classifier has been replaced with `safety_classifier.py`. See section [Trained Safety Classifier](#trained-safety-classifier) for details. -->
 
 ## Introduction
-Large language models (LLMs) released for public use are often fine-tuned to "align" their behavior to ensure they do not produce harmful or objectionable content. When prompted to produce inappropriate content, a well-aligned LLM should decline the user's request.
+Large language models (LLMs) released for public use are fine-tuned to ensure their outputs are safe and aligned with human values. When prompted to produce harmful content, an aligned LLM should decline the user's request.
 Following is an example of how an aligned LLM would respond when prompted with a harmful prompt:
 
 <p align="center">
   <img src="figures/harmful_prompt.png" width="600"/>
 </p>
 
-However, such safety measures have been shown to be vulnerable to **adversarial prompts**, which add maliciously designed sequences of tokens to a harmful prompt aimed at making an LLM produce harmful content despite being well-aligned.
-Given a harmful prompt P, which should be rejected by the LLM, it is possible to generate an adversarial prompt P + [adv] that can deceive the LLM into thinking that the prompt is safe and make the LLM comply with it.
+However, such safety measures are vulnerable to **adversarial attacks**, which add maliciously designed token sequences to a prompt to make an LLM produce harmful content despite being well-aligned.
+Given a harmful prompt P it is possible to generate an adversarial prompt of the form P + [adversarial sequence] that can bypass the LLM's safety guardrails.
 Following is an example of an adversarial attack on the above prompt:
 
 <p align="center">
   <img src="figures/adversarial_attack.png" width="600"/>
 </p>
 
-Moreover, the generation of such prompts can be entirely automated, creating an endless supply of quick and easy attacks.
+Moreover, using algorithms like the [Greedy Coordinate Gradient (GCG)](https://arxiv.org/abs/2307.15043), adversarial sequences can be generated in an entirely automated fashion, creating an endless supply of quick and easy attacks.
 
-The goal of this project is to design a *certified* safety procedure to defend against adversarial prompts. Given a harmful prompt P, the objective is to guarantee that the prompt is detected as harmful even if it is modified with an adversarial sequence [adv] as long as the length of [adv] is bounded.
-We design a framework, **erase-and-check**, that erases tokens one by one from the input prompt and evaluates the erased subsequences with a safety filter.
-Our procedure labels the input prompt as harmful if any subsequences or the input prompt itself are detected as harmful by the filter. The safety certificate of our procedure guarantees that harmful prompts are not misclassified as safe under an adversarial attack up to a certain size.
+In this work, we present **Erase-and-Check**, a *certified* defense against such attacks.
+Our procedure can obtain verifiable safety guarantees on the detection of harmful prompts.
+If an LLM achieves a certain detection accuracy on clean (non-adversarial) harmful propmts, our procedure guarantees the same performance even under an attack.
+
+Our procedure works by erasing tokens one by one from the input prompt and checking the resulting subsequences with a safety filter.
+It labels the prompt as harmful if any of the subsequences or the input prompt itself are detected as harmful by the filter.
+The safety filter can be implemented in two different ways:
+
+1. Prompting a general-purpose LLM like Llama 2 to classify an input prompt as safe or harmful.
+
+2. Fine-tuning a pretrained model like DistilBERT (modified to be a classifier) on examples of safe and harmful prompts.
+
+The safety certificate of Erase-and-Check guarantees that the performance of the safety filter on harmful prompts remains preserved even under attack, i.e., accuracy of Erase-and-Check on adversarial harmful prompts at least the accuracy of the safety filter on clean harmful prompts.
+
+We study three attack modes:
+
+1. **adversarial suffix**, where an adversarial sequence is appended at the end of a harmful prompt.
+
+2. **adversarial insertion**, where the adversarial sequence is inserted anywhere in the middle of the prompt.
+
+3. **adversarial infusion**, where adversarial tokens are inserted at arbitrary positions in the prompt, not necessarily as a contiguous block.
+
 Following is an illustration of erase-and-check for a harmful prompt with an adversarial suffix:
 
 <p align="center">
   <img src="figures/erase-and-check.png" width="600"/>
 </p>
 
+Additionally, we present three *empirical* defenses and show that they are effective against the GCG attack:
+
+1. **RandEC**, which is a randomized subsampling version of Erase-and-Check. 
+
+2. **GreedyEC**, which greedily erases tokens that maximize the softmax score of the harmful class of the DistilBERT safety classifier.
+
+3. **GradEC**, which uses gradient information to optimize the tokens to erase.
 
 ## This Repository
-The file `defenses.py` implements the safety filter and different versions of the erase-and-check procedure. The file `main.py` is the main evaluation script for the experiments in the paper. The `data` directory contains the safe and the harmful prompts used for the experiments.
+The file `defenses.py` implements the safety filter and different versions of the erase-and-check procedure. `main.py` is the main evaluation script for the experiments in the paper. The `data` directory contains the safe and harmful prompts used for training the DistilBERT safety classifier.
+`safety_classifier.py` trains the safety classifier on the prompts dataset. The directory `models` is for storing the weights of the trained classifier models.
+The directory `results` is for storing the results of the experiments in JSON files and PNG plots.
+Empirical defenses GreedyEC and GradEC are implemented in `greedy_ec.py` and `grad_ec.py`, respectively.
+`gcg.py` implements the GCG attack for the DistilBERT classifier to evaluate the performance of the empirical defenses.
+The directory `bash scripts` contains handy bash scripts to quickly reproduce the main results of our paper.
 
-As shown in the paper, the accuracy of erase-and-check is lower bounded by the performance of the safety filter.
-Thus, to compute the certified accuracy of erase-and-check onharmful prompts, we only need the accuracy of the safety filter on the harmful prompts.
+Before running the scripts in this repository, please follow the instructions in the [Installation](#installation) section to set up the Anaconda environment.
+Our code needs access to one GPU to run well. We use an NVIDIA A100 GPU for all our experiments.
+
+## Certified Accuracy
+In our work, we show that the detection accuracy of erase-and-check on adversarial harmful prompts is at least as high as the detection performance of the safety filter on clean harmful prompts (with no adversarial tokens).
+Thus, to compute the certified accuracy of erase-and-check, we only need tom evaluate the accuracy of the safety filter on harmful prompts.
+
 To evaluate the performance of the Llama 2-based safety filter on the harmful prompts, run:
 ```
 python main.py --num_prompts 520 --eval_type harmful --harmful_prompts data/harmful_prompts.txt
 ```
 This accuracy is around **92%**.
 
-To generate the results for the different attack modes, run the following scripts from the directory named `bash scripts`:
-
-Adversarial Suffix: `jobs_suffix.sh`
-
-Adversarial Insertion: `jobs_insert.sh`
-
-Adversarial Infusion: `jobs_infuse.sh`
-
-Smoothing-based Certificates: `jobs_smoothing.sh`
-
-Each of these scripts will produce a JSON file in the `results` directory. Use the following plotting scripts from `plot scripts` to generate the plots in the paper:
-
-For accuracy on safe prompts, run:
+For the DistilBERT-based filter, use:
 ```
-python plot\ scripts/plot_acc.py results/[result file].json
+python main.py --num_prompts 120 --eval_type harmful --use_classifier --model_wt_path models/[model-weights-file].pt --harmful_prompts data/harmful_prompts_test.txt
 ```
+This accuracy is **100%**. See Section [Training the Safety Classifier](#training-the-safety-classifier) for training details of the classifier.
 
-For plotting running time, run:
-```
-python plot\ scripts/plot_time.py results/[result file].json
-```
+The script `jobs_harmful.sh` in `bash scripts` evaluates all the filters on harmful prompts.
 
-For comparison plot for the smoothing-based certificates, run:
-```
-python plot\ scripts/plot_smoothing.py results/[result file].json
-```
+The above accuracies are the also the certified accuracies of erase-and-check for the Llama 2 and DistilBRT-based implementations.
+Note that we do not need adversarial prompts to compute the certified accuracy of erase-and-check, and this accuracy remains the same for all adversarial sequence lengths, attack algorithms, and attack modes considered.
 
-## Performance on Safe Prompts
-In our work, we seek to certify the performance of erase-and-check only on the harmful prompts and not the safe prompts.
-Attacking a safe prompt makes little sense in practice as it is unlikely that a user will seek to make their safe prompts look harmful to an aligned LLM only to get their request rejected.
-However, it is important to ensure that the quality of service does not degrade significantly for a non-malicious, non-adversarial user.
-To that end, we evaluate the empirical performance of the erase-and-check procedure on clean safe prompts.
+**Performance on Safe Prompts:** Our safety certificate guarantees that harmful prompts are not misclassified as safe due to an adversarial attack. However, we do not certify in the other direction, where an adversary attacks a safe prompt to get it misclassified as harmful. Such an attack makes little sense in practice as it is unlikely that a user will seek to make their safe prompts look harmful to an aligned LLM only to get it rejected. Nevertheless, we must empirically demonstrate that our procedure does not misclassify too many safe prompts as harmful. The following sections evaluate and compare the detection performance of erase-and-check for the Llama 2 and DistilBERT-based implementations.
 
-Following is the detection accuracy and the average running time per prompt w.r.t. the maximum erase length for the suffix mode on 520 safe prompts from `safe_prompts.txt`:
+## Adversarial Suffix
 
-<p align="center">
-  <img src="results/safe_suffix_520_acc.png" width="300" style="margin-right: 20px;"/>
-  <img src="results/safe_suffix_520_time.png" width="300"/>
-</p>
+Following is a comparison between the two implementations of erase-and-check in terms of detection accuracy and average running time on safe prompts in the suffix mode:
 
-Example command:
-```
-python main.py --num_prompts 520 --mode suffix --eval_type safe --max_erase 20 --safe_prompts data/safe_prompts.txt
-```
-Use the script `jobs_suffix.sh` in `bash scripts` to produce the results in the above plots.
-
-Similarly, for the insertion mode (100 prompts, one adversarial insertion):
-<p align="center">
-  <img src="results/safe_insertion_100_acc.png" width="300" style="margin-right: 20px;"/>
-  <img src="results/safe_insertion_100_time.png" width="300"/>
-</p>
-
-Example command:
-```
-python main.py --num_prompts 100 --mode insertion --eval_type safe --max_erase 8 --num_adv 1 --safe_prompts data/safe_prompts.txt
-```
-Use the script `jobs_insertion.sh` in `bash scripts` to produce the results in the above plots.
-
-Similarly, for the infusion mode (100 prompts):
-<p align="center">
-  <img src="results/safe_infusion_100_acc.png" width="300" style="margin-right: 20px;"/>
-  <img src="results/safe_infusion_100_time.png" width="300"/>
-</p>
-
-Example command:
-```
-python main.py --num_prompts 100 --mode infusion --eval_type safe --max_erase 3 --safe_prompts data/safe_prompts.txt
-```
-Use the script `jobs_infusion.sh` in `bash scripts` to produce the results in the above plots.
-
-## Trained Safety Classifier
-While we can obtain good performance by simply prompting Llama 2 to classify safe and harmful prompts, running a large language model is computationally expensive and requires significant amounts of processing power and storage capacity.
-Furthermore, since Llama 2 is not specifically trained to recognize safe and harmful prompts, its accuracy decreases against longer adversarial sequences.
-We show that it is possible to improve the performance of erase-and-check by replacing the safety filter with a text classifier trained to distinguish safe and harmful prompts.
-We download a pre-trained DistilBERT model from Hugging Face and fine-tune it on our safety dataset. DistilBERT is a faster and lightweight version of the BERT language model.
-
-Following is a comparison between the performance of erase-and-check with Llama 2 vs. DistilBERT as the safety filter for the insertion mode:
 <p align="center">
   <img src="results/comparison_safe_suffix_acc.png" width="300" style="margin-right: 20px;"/>
   <img src="results/comparison_safe_suffix_time.png" width="300"/>
 </p>
 
-Similarly, for the insertion mode:
+Use the bash script `jobs_suffix.sh` to reproduce the above results.
+
+To evaluate the two implementations separately for different values of the maximum erase length, use the following commands:
+
+1. Llama 2:
+    ```
+    python main.py --num_prompts 520 --mode suffix --eval_type safe --max_erase [num] --safe_prompts data/safe_prompts.txt
+    ```
+
+2. DistilBERT:
+    ```
+    python main.py --num_prompts 120 --mode suffix --eval_type safe --max_erase [num] --use_classifier --model_wt_path models/distilbert_suffix.pt --safe_prompts data/safe_prompts_test.txt
+    ```
+
+The results will be stored in a JSON file in the `results` directory.
+
+## Adversarial Insertion
+
+Following is a comparison between the Llama 2 and DistilBERT-based implementations of erase-and-check in terms of detection accuracy and average running time on safe prompts in the insertion mode:
+
 <p align="center">
   <img src="results/comparison_safe_insertion_acc.png" width="300" style="margin-right: 20px;"/>
   <img src="results/comparison_safe_insertion_time.png" width="300"/>
 </p>
 
-And, for the infusion mode:
+Use the bash script `jobs_insertion.sh` to reproduce the above results.
+
+To evaluate the two implementations separately for different values of the maximum erase length, use the following commands:
+
+1. Llama 2:
+    ```
+    python main.py --num_prompts 200 --mode insertion --eval_type safe --max_erase [num] --num_adv 1 --safe_prompts data/safe_prompts.txt
+    ```
+
+2. DistilBERT:
+    ```
+    python main.py --num_prompts 120 --mode insertion --eval_type safe --max_erase [num] --num_adv 1 --use_classifier --safe_prompts data/safe_prompts_test.txt --model_wt_path models/distilbert_insertion.pt
+    ```
+
+The results will be stored in a JSON file in the `results` directory.
+
+## Adversarial Infusion
+
+Following is a comparison between the Llama 2 and DistilBERT-based implementations of erase-and-check in terms of detection accuracy and average running time on safe prompts in the infusion mode:
+
 <p align="center">
   <img src="results/comparison_safe_infusion_acc.png" width="300" style="margin-right: 20px;"/>
   <img src="results/comparison_safe_infusion_time.png" width="300"/>
 </p>
 
-To reproduce the results for the DistilBERT safety classifier, first train the classifier using the script `safety_classifier.py`. We train the classifier with erased versions of the safe prompts, available in data files with the tag `_erased`, to help them recognize erased safe promtps as safe. Use the `main.py` script with the option `--use_classifier` to evaluate on safe and harmful prompts:
+Use the bash script `jobs_infusion.sh` to reproduce the above results.
 
+To evaluate the two implementations separately for different values of the maximum erase length, use the following commands:
+
+1. Llama 2:
+    ```
+    python main.py --num_prompts 100 --mode infusion --eval_type safe --max_erase [num] --safe_prompts data/safe_prompts.txt
+    ```
+
+2. DistilBERT:
+    ```
+    python main.py --num_prompts 120 --mode infusion --eval_type safe --max_erase [num] --safe_prompts data/safe_prompts_test.txt --use_classifier --model_wt_path models/distilbert_infusion.pt
+    ```
+
+The results will be stored in a JSON file in the `results` directory.
+
+## Training the Safety Classifier
+We train the DistilBERT classifier using eamples of safe and harmful prompts from our dataset in the `data` directory listed in the files `safe_prompts.txt` and `harmful_prompts.txt`, respectively. We split the dataset into train and test sets which are denoted by the `_train` and `_test` tags. For each mode, we include the erased subsequences of the safe prompts in the training examples, denoted by the `_[mode]_erased` tag, to teach the model to recognize such subsequences as safe.
+
+The file `safety_classifier.py` contains the script to train the classifier.
+
+Usage:
 ```
-python main.py --num_prompts 120 --eval_type harmful --use_classifier --model_wt_path models/[model-weights.pt] --harmful_prompts data/harmful_prompts_test.txt
-
-python main.py --num_prompts 120 --eval_type safe --mode suffix --max_erase 20 --use_classifier --model_wt_path models/[model-weights.pt] --safe_prompts data/safe_prompts_test.txt
-```
-
-The accuracy of the DistilBERT classifier on the harmful prompts test set is **100%**, which is the certified accuracy of erase-and-check on this set.
-
-## Attacking the Safety Classifier
-`gcg.py` implements the Greedy Coordinate Gradient attack in [Universal and Transferable Adversarial Attacks on Aligned Language Models](https://arxiv.org/abs/2307.15043) for the DistilBERT safety classifier. It takes a model and a set of harmful prompts as input and produces adversarial suffixes of the specified length for that model. To generate attacks of a sequence length of 20, run:
-
-```
-python gcg.py --num_adv 20 --model_wt_path models/[model-weights.pt] --prompts_file data/harmful_prompts_test.txt
-```
-We do not include the adversarial prompts in this repository as some of them might bypass the safety guardrails of publicly available LLMs due to their transferability.
-
-To evaluate the safety filter on the adversarial prompts, run:
-```
-python main.py --num_prompts 120 --eval_type harmful --use_classifier --model_wt_path models/[model-weights.pt] --harmful_prompts [path-to-adversarial-prompts]
-```
-
-## RandEC: Randomized Erase-and-Check
-The erase-and-check procedure performs an exhaustive search over the set of erased subsequences to check whether an input prompt is harmful or not. Evaluating the safety filter on all erased subsequences is necessary to certify the accuracy of erase-and-check against adversarial prompts. However, in many practical applications, certified guarantees may not be needed. Relaxing this requirement could allow us to reduce the number of filter evaluations and lower the computational cost of erase-and-check while maintaining good detection performance.
-
-The radomized version of the erase-and-check procedure evaluates the safety filter on a randomly sampled subset of the erased subsequences. The fration of the subsequences sampled is controlled by the `--sampling_ratio` parameter.
-To evaluate the empirical performance of this version, first generate adversarial prompts with sequence lengths 0, 2, 4, ..., 20. Then run the following command:
-
-```
-python main.py --num_prompts 120 --eval_type empirical --mode suffix --max_erase 20 --use_classifier --model_wt_path models/[model-weights.pt] --randomize --sampling_ratio 0.2
+python safety_classifier.py --safe_train data/safe_prompts_train_[mode]_erased.txt --safe_test data/safe_prompts_test_[mode]_erased.txt --save_path models/distilbert_[mode].pt
 ```
 
-Following is the empirical performance of RandEC for different values of the sampling ratio on adversarial prompts of different lengths:
+The script `train_safety_clf.sh` in `bash scripts` can be used to train all the classifiers.
+The model weights will be stored in the `models` directory.
+
+## Efficient Empirical Defenses
+Along with the certified defenses, we present three empirical defenses inspired by the original erase-and-check procedure:
+
+1. **RandEC**: This is a randomized variant of the erase-and-check procedure. It checks a randomly sampled subset of the erased subsequences instead of all the erased subsequences. It also checks the input prompt.
+
+2. **GreedyEC**: This variant greedily erases tokens that maximize the softmax score for the harmful class in the DistilBERT safety classifier.
+
+3. **GradEC**: This variant uses the gradients of the safety filter with respect to the input prompt to optimize the tokens to erase.
+
+These defenses are faster than the certified ones, but do not come with certified safety guarantees. They need to be evaluated against adversarial attacks such as GCG to demonstrate their effectiveness. The file `gcg.py` implements the GCG attack algorithm for the DistilBERT classifier. To generate adversarial prompts of a certain length, use the command:
+
+```
+python gcg.py --model_wt_path models/[model-weights.pt] --num_adv [length]
+```
+
+It will generate a file named `adversarial_prompts_t_[length].txt` in the `data` directory containing the adversarial prompts.
+
+The bash script `jobs_gcg.sh` generates attacks for several adversarial lengths.
+
+We evaluate each of the empirical defenses on the adversarial prompts. Following is the performance of RandEC for different values of the sampling ratio, which refers to the fraction of the erased subsequences sampled. A sampling ratio of 0 means that the safety filter is evaluated only on the input prompt and a sampling ratio of 1 means that all the erased subsequences are evaluated, which is the same as running erase-and-check.
+
 <p align="center">
   <img src="results/empirical_suffix_120_clf_rand.png" width="400"/>
 </p>
+
+Use the script `jobs_rand_ec.sh` in `bash scripts` to reproduce the above results. To evaluate for a different sampling ratio, run:
+```
+python main.py --num_prompts 120 --eval_type empirical --mode suffix --max_erase 20 --use_classifier --model_wt_path models/distilbert_suffix.pt --randomize --sampling_ratio [ratio]
+```
+
+Following is the performance of GreedyEC for different iterations of the greedy algorithm. In each iteration, the GreedyEC goes through all the tokens in a prompt and erases the one that maximizes the softmax of the harmful class of the DistilBERT safety classifier.
+When the number of iterations is set to zero, it evaluates the safety classifier on the entire input prompt.
+
+<p align="center">
+  <img src="results/greedy_ec_120_clf.png" width="400"/>
+</p>
+
+Use the script `jobs_greedy_ec.sh` in `bash scripts` to reproduce the above results. To evaluate for a different number of iterations, run:
+```
+python main.py --num_prompts 120 --eval_type greedy_ec --use_classifier --model_wt_path models/distilbert_suffix.pt --num_iters [num]
+```
+
+Following is the performance of GradEC for different number of iterations of the optimization algorithm. When the nymber of iterations is set to zero, it is equivalent to evaluating the safety classifier on the original input prompt.
+
+<p align="center">
+  <img src="results/grad_ec_120_clf.png" width="400"/>
+</p>
+
+Use the script `jobs_grad_ec.sh` in `bash scripts` to reproduce the above results. To evaluate for a different number of iterations, run:
+
+```
+python main.py --num_prompts 120 --eval_type grad_ec --use_classifier --model_wt_path models/distilbert_suffix.pt --num_iters [num]
+```
+
+**Performance on Safe Prompts:** The performance of GreedyEC and GradEC on safe prompts can be evaluated using the bash scripts `greedy_ec_safe.sh` and `grad_ec_safe.sh`. The performance of RandEC will always be above erase-and-check as it only evaluates a subset of the erased subsequences, which only reduces its chances of misclassifying safe prompts.
 
 ## Installation
 Follow the instructions below to set up the environment for the experiments.

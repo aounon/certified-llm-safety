@@ -14,6 +14,7 @@ done
 
 # DistilBERT classifier
 for max_erase in 0 4 8 12
+# for max_erase in 0 10 20 30
 do
     python main.py \
         --num_prompts 120 \

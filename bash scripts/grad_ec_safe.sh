@@ -1,9 +1,9 @@
+#!/bin/bash
+
 # To evaluate the performance of the gradient-based method on the safe prompts.
 # The method should not label safe prompts as harmful. So, percent harmful should be low.
 
-#!/bin/bash
-
-for num_iters in 0 10 20 30 40
+for num_iters in 0 25 50 75 100
 do
     python grad_ec.py \
         --prompts_file data/safe_prompts_test.txt \

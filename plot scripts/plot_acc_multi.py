@@ -48,7 +48,7 @@ sns.barplot(x='max_erase', y='percent_safe',
 #     plt.bar(subset['max_erase'], subset['percent_safe'], color=colors[num_adv - 1], alpha=0.5, width=1, label=f'# Adv Prompts = {num_adv}')
 
 # Set the labels, title, and legend
-plt.xlabel("Max Erase Length (= Certified Size)", fontsize=18, labelpad=10)
+plt.xlabel("Max Tokens Erased (= Certified Size)", fontsize=18, labelpad=10)
 # plt.xlabel("Max Erase Length (= Certified Length)", fontsize=18, labelpad=10)
 plt.ylabel("% Safe Prompts Labeled Safe", fontsize=18, labelpad=10)
 # plt.legend(loc='lower right', fontsize=14)
