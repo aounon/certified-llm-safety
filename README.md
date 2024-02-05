@@ -1,8 +1,18 @@
 # Certifying LLM Safety against Adversarial Prompting
 
-This is the official repository for the code accompanying the paper [Certifying LLM Safety against Adversarial Prompting](https://arxiv.org/abs/2309.02705).
+This repository contains code for the paper [Certifying LLM Safety against Adversarial Prompting](https://arxiv.org/abs/2309.02705).
 
-<!-- **UPDATE**: The script `distil_bert_toxic_classifier.py` for training the DistilBERT safety classifier has been replaced with `safety_classifier.py`. See section [Trained Safety Classifier](#trained-safety-classifier) for details. -->
+Contents:
+
+- [Introduction](#introduction)
+- [This Repository](#this-repository)
+- [Certified Accuracy](#certified-accuracy)
+- [Adversarial Suffix](#adversarial-suffix)
+- [Adversarial Insertion](#adversarial-insertion)
+- [Adversarial Infusion](#adversarial-infusion)
+- [Training the Safety Classifier](#training-the-safety-classifier)
+- [Efficient Empirical Defenses](#efficient-empirical-defenses)
+- [Installation](#installation)
 
 ## Introduction
 Large language models (LLMs) released for public use are fine-tuned to ensure their outputs are safe and aligned with human values. When prompted to produce harmful content, an aligned LLM should decline the user's request.
@@ -179,6 +189,7 @@ python safety_classifier.py --safe_train data/safe_prompts_train_[mode]_erased.t
 
 The script `train_safety_clf.sh` in `bash scripts` can be used to train all the classifiers.
 The model weights will be stored in the `models` directory.
+Trained models are available at this [Dropbox link](https://www.dropbox.com/scl/fi/ux4ew8y88uslu5064r2xh/models.zip?rlkey=4bo1njpnj4nc801tw1pkby52o&dl=0).
 
 ## Efficient Empirical Defenses
 Along with the certified defenses, we present three empirical defenses inspired by the original erase-and-check procedure:
