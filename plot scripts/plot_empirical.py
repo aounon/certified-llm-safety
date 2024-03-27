@@ -23,6 +23,18 @@ def read_data_from_json(json_file):
                 'adv_tok': adv_tok_value,
                 'percent_harmful': metrics['percent_harmful']
             })
+            plot_data.append({
+                'sampling_ratio': max_erase_value,
+                # 'max_erase': max_erase_value,
+                'adv_tok': adv_tok_value,
+                'percent_harmful': metrics['percent_harmful'] + metrics['percent_harmful_se']
+            })
+            plot_data.append({
+                'sampling_ratio': max_erase_value,
+                # 'max_erase': max_erase_value,
+                'adv_tok': adv_tok_value,
+                'percent_harmful': metrics['percent_harmful'] - metrics['percent_harmful_se']
+            })
 
     return pd.DataFrame(plot_data)
 
@@ -30,7 +42,7 @@ def read_data_from_json(json_file):
 def plot_data(df, filename='plot.png'):
     sns.set_theme(style="darkgrid")
     plt.figure(figsize=(8, 6))
-    plot = sns.lineplot(data=df, x='adv_tok', y='percent_harmful', hue='sampling_ratio', marker='o', palette='tab10')
+    plot = sns.lineplot(data=df, x='adv_tok', y='percent_harmful', hue='sampling_ratio', marker='o', palette='tab10', estimator='median', errorbar=('pi', 100))
     # plot = sns.lineplot(data=df, x='adv_tok', y='percent_harmful', hue='max_erase', marker='o', palette='tab10')
 
     # plot.set_title('Percent Harmful vs. Adversarial Tokens', fontsize=16)

@@ -26,10 +26,23 @@ for num_adv in num_adv_values:
             'max_erase': int(max_erase.split(': ')[1][:-1]),
             'percent_safe': data[num_adv][max_erase]['percent_safe']
         })
+        plot_data.append({
+            # 'num_adv': int(num_adv.split(': ')[1][:-1]),
+            'model': num_adv.split(': ')[1][:-1],
+            'max_erase': int(max_erase.split(': ')[1][:-1]),
+            'percent_safe': data[num_adv][max_erase]['percent_safe'] + data[num_adv][max_erase]['percent_safe_se']
+        })
+        plot_data.append({
+            # 'num_adv': int(num_adv.split(': ')[1][:-1]),
+            'model': num_adv.split(': ')[1][:-1],
+            'max_erase': int(max_erase.split(': ')[1][:-1]),
+            'percent_safe': data[num_adv][max_erase]['percent_safe'] - data[num_adv][max_erase]['percent_safe_se']
+        })
 
 # Convert the data to a DataFrame
 import pandas as pd
 df = pd.DataFrame(plot_data)
+# print(df)
 
 # Set the seaborn style
 sns.set_style("darkgrid", {"grid.color": ".85"})
@@ -41,7 +54,9 @@ plt.figure(figsize=(7, 6))
 sns.barplot(x='max_erase', y='percent_safe',
             # hue='num_adv',
             hue='model',
-            data=df, palette=colors, alpha=0.7)
+            data=df, palette=colors, alpha=0.7,
+            estimator="median",
+            errorbar=("pi", 100))
 # for num_adv in [1, 2]:
 #     subset = df[df['num_adv'] == num_adv]
 #     # plt.plot(subset['max_erase'], subset['percent_safe'], label=f'# Adv Prompts = {num_adv}', linewidth=2, color=colors[num_adv - 1])

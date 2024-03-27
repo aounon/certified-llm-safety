@@ -19,7 +19,7 @@ Large language models (LLMs) released for public use are fine-tuned to ensure th
 Following is an example of how an aligned LLM would respond when prompted with a harmful prompt:
 
 <p align="center">
-  <img src="figures/harmful_prompt.png" width="600"/>
+  <img src="figures/harmful_prompt.png" width="500"/>
 </p>
 
 However, such safety measures are vulnerable to **adversarial attacks**, which add maliciously designed token sequences to a prompt to make an LLM produce harmful content despite being well-aligned.
@@ -27,7 +27,7 @@ Given a harmful prompt P it is possible to generate an adversarial prompt of the
 Following is an example of an adversarial attack on the above prompt:
 
 <p align="center">
-  <img src="figures/adversarial_attack.png" width="600"/>
+  <img src="figures/adversarial_attack.png" width="500"/>
 </p>
 
 Moreover, using algorithms like the [Greedy Coordinate Gradient (GCG)](https://arxiv.org/abs/2307.15043), adversarial sequences can be generated in an entirely automated fashion, creating an endless supply of quick and easy attacks.
@@ -57,7 +57,7 @@ We study three attack modes:
 Following is an illustration of erase-and-check for a harmful prompt with an adversarial suffix:
 
 <p align="center">
-  <img src="figures/erase-and-check.png" width="600"/>
+  <img src="figures/erase-and-check.png" width="700"/>
 </p>
 
 Additionally, we present three *empirical* defenses and show that they are effective against the GCG attack:

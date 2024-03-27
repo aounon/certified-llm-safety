@@ -2,19 +2,27 @@
   "{'num_adv': 1}": {
     "{'max_erase': 0}": {
       "percent_safe": 100.0,
-      "time_per_prompt": 0.11227636456489563
+      "time_per_prompt": 0.11192125916481017,
+      "percent_safe_se": 0.0,
+      "time_per_prompt_se": 0.003530926781238451
     },
     "{'max_erase': 4}": {
-      "percent_safe": 97.0,
-      "time_per_prompt": 5.785537713766098
+      "percent_safe": 97.5,
+      "time_per_prompt": 5.540372409820557,
+      "percent_safe_se": 1.1067404265948255,
+      "time_per_prompt_se": 0.10535701446296217
     },
     "{'max_erase': 8}": {
-      "percent_safe": 94.5,
-      "time_per_prompt": 9.389040935039521
+      "percent_safe": 92.0,
+      "time_per_prompt": 9.168587005138397,
+      "percent_safe_se": 1.9231465004808026,
+      "time_per_prompt_se": 0.2452128091535951
     },
     "{'max_erase': 12}": {
-      "percent_safe": 90.5,
-      "time_per_prompt": 11.268730491399765
+      "percent_safe": 90.0,
+      "time_per_prompt": 10.657257562875747,
+      "percent_safe_se": 2.1266436150250074,
+      "time_per_prompt_se": 0.3591319474621757
     }
   }
 }

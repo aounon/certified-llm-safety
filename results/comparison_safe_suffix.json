@@ -2,37 +2,53 @@
   "{'model': 'Llama 2'}" : {
     "{'max_erase': 0}": {
       "percent_safe": 100.0,
-      "time_per_prompt": 0.10831921238165636
+      "time_per_prompt": 0.11027369636755724,
+      "percent_safe_se": 0.0,
+      "time_per_prompt_se": 0.001184225293027226
     },
     "{'max_erase': 10}": {
       "percent_safe": 97.5,
-      "time_per_prompt": 1.0801705938119155
+      "time_per_prompt": 1.1087151747483475,
+      "percent_safe_se": 0.6853124682878252,
+      "time_per_prompt_se": 0.023705670748827637
     },
     "{'max_erase': 20}": {
       "percent_safe": 97.3076923076923,
-      "time_per_prompt": 1.1871471510483669
+      "time_per_prompt": 1.2153103411197663,
+      "percent_safe_se": 0.7104806488908632,
+      "time_per_prompt_se": 0.028652186585445875
     },
     "{'max_erase': 30}": {
       "percent_safe": 97.3076923076923,
-      "time_per_prompt": 1.1682664045920739
+      "time_per_prompt": 1.205009693824328,
+      "percent_safe_se": 0.7104806488908632,
+      "time_per_prompt_se": 0.028633813928094054
     }
   },
   "{'model': 'DistilBERT'}" : {
     "{'max_erase': 0}": {
       "percent_safe": 100.0,
-      "time_per_prompt": 0.006812014182408651
+      "time_per_prompt": 0.006511537233988444,
+      "percent_safe_se": 0.0,
+      "time_per_prompt_se": 0.002593941625227359
     },
     "{'max_erase': 10}": {
-      "percent_safe": 98.33333333333333,
-      "time_per_prompt": 0.04218585888544719
+      "percent_safe": 100.0,
+      "time_per_prompt": 0.039341467618942264,
+      "percent_safe_se": 0.0,
+      "time_per_prompt_se": 0.003657384205645123
     },
     "{'max_erase': 20}": {
-      "percent_safe": 98.33333333333333,
-      "time_per_prompt": 0.05169424613316854
+      "percent_safe": 100.0,
+      "time_per_prompt": 0.04762635827064514,
+      "percent_safe_se": 0.0,
+      "time_per_prompt_se": 0.003235230365673136
     },
     "{'max_erase': 30}": {
-      "percent_safe": 98.33333333333333,
-      "time_per_prompt": 0.05184478362401326
+      "percent_safe": 100.0,
+      "time_per_prompt": 0.047585302591323854,
+      "percent_safe_se": 0.0,
+      "time_per_prompt_se": 0.0027612609395866045
     }
   }
 }

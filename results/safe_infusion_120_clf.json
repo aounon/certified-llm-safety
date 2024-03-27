@@ -1,26 +1,38 @@
 {
   "{'max_erase': 0}": {
     "percent_safe": 100.0,
-    "time_per_prompt": 0.00919346809387207
+    "time_per_prompt": 0.006374126672744751,
+    "percent_safe_se": 0.0,
+    "time_per_prompt_se": 0.0026167845291035262
   },
   "{'max_erase': 1}": {
     "percent_safe": 100.0,
-    "time_per_prompt": 0.04929759701093038
+    "time_per_prompt": 0.04882756471633911,
+    "percent_safe_se": 0.0,
+    "time_per_prompt_se": 0.002651464621619459
   },
   "{'max_erase': 2}": {
     "percent_safe": 100.0,
-    "time_per_prompt": 0.3164243757724762
+    "time_per_prompt": 0.31497308015823366,
+    "percent_safe_se": 0.0,
+    "time_per_prompt_se": 0.013484639094732508
   },
   "{'max_erase': 3}": {
     "percent_safe": 100.0,
-    "time_per_prompt": 1.3793971021970113
+    "time_per_prompt": 1.3763695359230042,
+    "percent_safe_se": 0.0,
+    "time_per_prompt_se": 0.09681166202364905
   },
   "{'max_erase': 4}": {
     "percent_safe": 100.0,
-    "time_per_prompt": 4.5891388893127445
+    "time_per_prompt": 4.59414499203364,
+    "percent_safe_se": 0.0,
+    "time_per_prompt_se": 0.4886558186863555
   },
   "{'max_erase': 6}": {
     "percent_safe": 99.16666666666667,
-    "time_per_prompt": 28.113863291343055
+    "time_per_prompt": 27.52278778354327,
+    "percent_safe_se": 0.8333333333333309,
+    "time_per_prompt_se": 5.777498905384379
   }
 }

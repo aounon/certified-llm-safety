@@ -163,6 +163,8 @@ if eval_type == "safe":
     # Check if the prompts are harmful
     count_safe = 0
     start_time = time.time()
+    time_list = []
+    elapsed_time = 0
     for i in range(num_prompts):
         prompt = prompts[i]
         if args.append_adv: prompt += adv_suffix
@@ -173,6 +175,7 @@ if eval_type == "safe":
             count_safe += 1
 
         current_time = time.time()
+        time_list.append(current_time - start_time - elapsed_time)
         elapsed_time = current_time - start_time
         time_per_prompt = elapsed_time / (i + 1)
         percent_safe = count_safe / (i + 1) * 100
@@ -180,13 +183,19 @@ if eval_type == "safe":
             + f' Detected safe = {percent_safe:5.1f}%' \
             + f' Time/prompt = {time_per_prompt:5.1f}s', end="\r", flush=True)
         
+    # Compute standard error of the average time per prompt
+    time_per_prompt_se = torch.tensor(time_list).std().item() / (num_prompts ** 0.5)
+
+    # Compute standard error of the percentage of safe prompts
+    percent_safe_se = (percent_safe * (100 - percent_safe) / (num_prompts - 1)) ** 0.5
+
     # Save results
     if mode == "insertion":
         if str(dict(num_adv = num_adv)) not in results:
             results[str(dict(num_adv = num_adv))] = {}
-        results[str(dict(num_adv = num_adv))][str(dict(max_erase = max_erase))] = dict(percent_safe = percent_safe, time_per_prompt = time_per_prompt)
+        results[str(dict(num_adv = num_adv))][str(dict(max_erase = max_erase))] = dict(percent_safe = percent_safe, time_per_prompt = time_per_prompt, percent_safe_se = percent_safe_se, time_per_prompt_se = time_per_prompt_se)
     else:
-        results[str(dict(max_erase = max_erase))] = dict(percent_safe = percent_safe, time_per_prompt = time_per_prompt)
+        results[str(dict(max_erase = max_erase))] = dict(percent_safe = percent_safe, time_per_prompt = time_per_prompt, percent_safe_se = percent_safe_se, time_per_prompt_se = time_per_prompt_se)
     # print(results)
 
 elif eval_type == "empirical":
@@ -206,6 +215,8 @@ elif eval_type == "empirical":
         # Check if the prompts are harmful
         count_harmful = 0
         start_time = time.time()
+        time_list = []
+        elapsed_time = 0
         for i in range(num_prompts):
             prompt = prompts[i]
             harmful = erase_and_check(prompt, pipeline, tokenizer, max_erase=max_erase, num_adv=num_adv, randomized=randomize,
@@ -215,6 +226,7 @@ elif eval_type == "empirical":
                 count_harmful += 1
 
             current_time = time.time()
+            time_list.append(current_time - start_time - elapsed_time)
             elapsed_time = current_time - start_time
             time_per_prompt = elapsed_time / (i + 1)
             percent_harmful = count_harmful / (i + 1) * 100
@@ -222,10 +234,16 @@ elif eval_type == "empirical":
                 + f' Detected harmful = {percent_harmful:5.1f}%' \
                 + f' Time/prompt = {time_per_prompt:5.1f}s', end="\r", flush=True)
             
+        # Compute standard error of the average time per prompt
+        time_per_prompt_se = torch.tensor(time_list).std().item() / (num_prompts ** 0.5)
+
+        # Compute standard error of the percentage of harmful prompts
+        percent_harmful_se = (percent_harmful * (100 - percent_harmful) / (num_prompts - 1)) ** 0.5
+
         print("")
             
         # Save results
-        emp_results[str(dict(adv_tok = adv_tok))] = dict(percent_harmful = percent_harmful, time_per_prompt = time_per_prompt)
+        emp_results[str(dict(adv_tok = adv_tok))] = dict(percent_harmful = percent_harmful, time_per_prompt = time_per_prompt, percent_harmful_se = percent_harmful_se, time_per_prompt_se = time_per_prompt_se)
 
     if randomize:
         results[str(dict(sampling_ratio = sampling_ratio))] = emp_results
@@ -253,6 +271,8 @@ elif eval_type == "grad_ec":
         # Check if the prompts are harmful
         count_harmful = 0
         start_time = time.time()
+        time_list = []
+        elapsed_time = 0
         for i in range(num_prompts):
             prompt = prompts[i]
             harmful, _ = grad_ec(prompt, model, tokenizer, model.distilbert.embeddings.word_embeddings,
@@ -263,6 +283,7 @@ elif eval_type == "grad_ec":
                 count_harmful += 1
 
             current_time = time.time()
+            time_list.append(current_time - start_time - elapsed_time)
             elapsed_time = current_time - start_time
             time_per_prompt = elapsed_time / (i + 1)
             percent_harmful = count_harmful / (i + 1) * 100
@@ -272,8 +293,14 @@ elif eval_type == "grad_ec":
             
         print("")
 
+        # Compute standard error of the average time per prompt
+        time_per_prompt_se = torch.tensor(time_list).std().item() / (num_prompts ** 0.5)
+
+        # Compute standard error of the percentage of harmful prompts
+        percent_harmful_se = (percent_harmful * (100 - percent_harmful) / (num_prompts - 1)) ** 0.5
+
         # Save results
-        emp_results[str(dict(adv_tok = adv_tok))] = dict(percent_harmful = percent_harmful, time_per_prompt = time_per_prompt)
+        emp_results[str(dict(adv_tok = adv_tok))] = dict(percent_harmful = percent_harmful, time_per_prompt = time_per_prompt, percent_harmful_se = percent_harmful_se, time_per_prompt_se = time_per_prompt_se)
 
     results[str(dict(num_iters = num_iters))] = emp_results
 
@@ -298,6 +325,8 @@ elif eval_type == "greedy_ec":
         # Check if the prompts are harmful
         count_harmful = 0
         start_time = time.time()
+        time_list = []
+        elapsed_time = 0
         for i in range(num_prompts):
             prompt = prompts[i]
             harmful = greedy_ec(prompt, model, tokenizer, num_iters=num_iters)
@@ -307,6 +336,7 @@ elif eval_type == "greedy_ec":
                 count_harmful += 1
 
             current_time = time.time()
+            time_list.append(current_time - start_time - elapsed_time)
             elapsed_time = current_time - start_time
             time_per_prompt = elapsed_time / (i + 1)
             percent_harmful = count_harmful / (i + 1) * 100
@@ -316,8 +346,14 @@ elif eval_type == "greedy_ec":
             
         print("")
 
+        # Compute standard error of the average time per prompt
+        time_per_prompt_se = torch.tensor(time_list).std().item() / (num_prompts ** 0.5)
+
+        # Compute standard error of the percentage of harmful prompts
+        percent_harmful_se = (percent_harmful * (100 - percent_harmful) / (num_prompts - 1)) ** 0.5
+
         # Save results
-        emp_results[str(dict(adv_tok = adv_tok))] = dict(percent_harmful = percent_harmful, time_per_prompt = time_per_prompt)
+        emp_results[str(dict(adv_tok = adv_tok))] = dict(percent_harmful = percent_harmful, time_per_prompt = time_per_prompt, percent_harmful_se = percent_harmful_se, time_per_prompt_se = time_per_prompt_se)
 
     results[str(dict(num_iters = num_iters))] = emp_results
 
