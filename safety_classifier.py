@@ -160,7 +160,7 @@ def train():
     sent_id, mask, labels = batch
 
     # clear previously calculated gradients 
-    model.zero_grad()        
+    model.zero_grad()     
 
     # get model predictions for the current batch
     preds = model(sent_id, mask)[0]

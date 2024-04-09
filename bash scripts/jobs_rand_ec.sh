@@ -1,6 +1,6 @@
 #!/bin/sh
 
-for ratio in 0.0 0.1 0.2 0.3 0.4
+for ratio in 1.0        # 0.0 0.1 0.2 0.3 0.4
 do
     echo "Sampling Ratio $ratio:"
     python main.py \

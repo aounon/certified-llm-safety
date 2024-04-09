@@ -1,0 +1,342 @@
+{
+    "{'defense': 'CertifiedEC'}": {
+        "{'adv_tok': 0}": {
+          "percent_harmful": 100.0,
+          "time_per_prompt": 0.11144432822863261,
+          "percent_harmful_se": 0.0,
+          "time_per_prompt_se": 0.04010118212145592
+        },
+        "{'adv_tok': 2}": {
+          "percent_harmful": 100.0,
+          "time_per_prompt": 0.08013562162717183,
+          "percent_harmful_se": 0.0,
+          "time_per_prompt_se": 0.0012686195249668338
+        },
+        "{'adv_tok': 4}": {
+          "percent_harmful": 100.0,
+          "time_per_prompt": 0.08911133607228597,
+          "percent_harmful_se": 0.0,
+          "time_per_prompt_se": 0.0010892961321630377
+        },
+        "{'adv_tok': 6}": {
+          "percent_harmful": 100.0,
+          "time_per_prompt": 0.0987533966700236,
+          "percent_harmful_se": 0.0,
+          "time_per_prompt_se": 0.002444685517940905
+        },
+        "{'adv_tok': 8}": {
+          "percent_harmful": 100.0,
+          "time_per_prompt": 0.10131343801816305,
+          "percent_harmful_se": 0.0,
+          "time_per_prompt_se": 0.0005239547079920489
+        },
+        "{'adv_tok': 10}": {
+          "percent_harmful": 100.0,
+          "time_per_prompt": 0.1042393684387207,
+          "percent_harmful_se": 0.0,
+          "time_per_prompt_se": 0.00029118536531216226
+        },
+        "{'adv_tok': 12}": {
+          "percent_harmful": 100.0,
+          "time_per_prompt": 0.10639117956161499,
+          "percent_harmful_se": 0.0,
+          "time_per_prompt_se": 0.0002389333406785834
+        },
+        "{'adv_tok': 14}": {
+          "percent_harmful": 100.0,
+          "time_per_prompt": 0.10824439326922099,
+          "percent_harmful_se": 0.0,
+          "time_per_prompt_se": 0.0002595285032894355
+        },
+        "{'adv_tok': 16}": {
+          "percent_harmful": 100.0,
+          "time_per_prompt": 0.10973819096883138,
+          "percent_harmful_se": 0.0,
+          "time_per_prompt_se": 0.00022115853500175793
+        },
+        "{'adv_tok': 18}": {
+          "percent_harmful": 100.0,
+          "time_per_prompt": 0.11150147517522176,
+          "percent_harmful_se": 0.0,
+          "time_per_prompt_se": 0.00021444347332900778
+        },
+        "{'adv_tok': 20}": {
+          "percent_harmful": 99.16666666666667,
+          "time_per_prompt": 0.11271880666414896,
+          "percent_harmful_se": 0.8333333333333309,
+          "time_per_prompt_se": 0.0001767278652578258
+        }
+      },
+    "{'defense': 'RandEC'}": {
+        "{'adv_tok': 0}": {
+          "percent_harmful": 100.0,
+          "time_per_prompt": 0.019207994143168133,
+          "percent_harmful_se": 0.0,
+          "time_per_prompt_se": 0.0029047167972339
+        },
+        "{'adv_tok': 2}": {
+          "percent_harmful": 100.0,
+          "time_per_prompt": 0.0180673619111379,
+          "percent_harmful_se": 0.0,
+          "time_per_prompt_se": 0.0003150213612971921
+        },
+        "{'adv_tok': 4}": {
+          "percent_harmful": 99.16666666666667,
+          "time_per_prompt": 0.020203399658203124,
+          "percent_harmful_se": 0.8333333333333309,
+          "time_per_prompt_se": 0.0002727752221360194
+        },
+        "{'adv_tok': 6}": {
+          "percent_harmful": 99.16666666666667,
+          "time_per_prompt": 0.02203512191772461,
+          "percent_harmful_se": 0.8333333333333309,
+          "time_per_prompt_se": 0.00024864400208215776
+        },
+        "{'adv_tok': 8}": {
+          "percent_harmful": 99.16666666666667,
+          "time_per_prompt": 0.023381259044011435,
+          "percent_harmful_se": 0.8333333333333309,
+          "time_per_prompt_se": 0.0001556110338532079
+        },
+        "{'adv_tok': 10}": {
+          "percent_harmful": 100.0,
+          "time_per_prompt": 0.024180370569229125,
+          "percent_harmful_se": 0.0,
+          "time_per_prompt_se": 9.5055168082717e-05
+        },
+        "{'adv_tok': 12}": {
+          "percent_harmful": 99.16666666666667,
+          "time_per_prompt": 0.02461247642834981,
+          "percent_harmful_se": 0.8333333333333309,
+          "time_per_prompt_se": 4.262080698545993e-05
+        },
+        "{'adv_tok': 14}": {
+          "percent_harmful": 99.16666666666667,
+          "time_per_prompt": 0.024917757511138915,
+          "percent_harmful_se": 0.8333333333333309,
+          "time_per_prompt_se": 4.044641476705133e-05
+        },
+        "{'adv_tok': 16}": {
+          "percent_harmful": 100.0,
+          "time_per_prompt": 0.02518769105275472,
+          "percent_harmful_se": 0.0,
+          "time_per_prompt_se": 4.058211103519012e-05
+        },
+        "{'adv_tok': 18}": {
+          "percent_harmful": 95.83333333333334,
+          "time_per_prompt": 0.025416125853856403,
+          "percent_harmful_se": 1.8318048122588675,
+          "time_per_prompt_se": 4.130040458495033e-05
+        },
+        "{'adv_tok': 20}": {
+          "percent_harmful": 95.0,
+          "time_per_prompt": 0.025688197215398154,
+          "percent_harmful_se": 1.9978980551207968,
+          "time_per_prompt_se": 4.358367794796713e-05
+        }
+      },
+      "{'defense': 'GreedyEC'}": {
+        "{'adv_tok': 0}": {
+          "percent_harmful": 100.0,
+          "time_per_prompt": 0.006822341680526733,
+          "percent_harmful_se": 0.0,
+          "time_per_prompt_se": 0.002556539775090237
+        },
+        "{'adv_tok': 2}": {
+          "percent_harmful": 100.0,
+          "time_per_prompt": 0.004402858018875122,
+          "percent_harmful_se": 0.0,
+          "time_per_prompt_se": 0.00012139792247595797
+        },
+        "{'adv_tok': 4}": {
+          "percent_harmful": 100.0,
+          "time_per_prompt": 0.005504888296127319,
+          "percent_harmful_se": 0.0,
+          "time_per_prompt_se": 0.0002287879411105825
+        },
+        "{'adv_tok': 6}": {
+          "percent_harmful": 100.0,
+          "time_per_prompt": 0.008522903919219971,
+          "percent_harmful_se": 0.0,
+          "time_per_prompt_se": 0.00035564914545123833
+        },
+        "{'adv_tok': 8}": {
+          "percent_harmful": 100.0,
+          "time_per_prompt": 0.01344831387201945,
+          "percent_harmful_se": 0.0,
+          "time_per_prompt_se": 0.00044611834025652414
+        },
+        "{'adv_tok': 10}": {
+          "percent_harmful": 100.0,
+          "time_per_prompt": 0.018434059619903565,
+          "percent_harmful_se": 0.0,
+          "time_per_prompt_se": 0.0005599160177051865
+        },
+        "{'adv_tok': 12}": {
+          "percent_harmful": 100.0,
+          "time_per_prompt": 0.02430117130279541,
+          "percent_harmful_se": 0.0,
+          "time_per_prompt_se": 0.0006313641956869361
+        },
+        "{'adv_tok': 14}": {
+          "percent_harmful": 99.16666666666667,
+          "time_per_prompt": 0.03145986596743266,
+          "percent_harmful_se": 0.8333333333333309,
+          "time_per_prompt_se": 0.0007800712584704337
+        },
+        "{'adv_tok': 16}": {
+          "percent_harmful": 97.5,
+          "time_per_prompt": 0.0386456569035848,
+          "percent_harmful_se": 1.431195069769,
+          "time_per_prompt_se": 0.0009925763062917723
+        },
+        "{'adv_tok': 18}": {
+          "percent_harmful": 95.0,
+          "time_per_prompt": 0.046923526128133136,
+          "percent_harmful_se": 1.9978980551207968,
+          "time_per_prompt_se": 0.0009866267655180224
+        },
+        "{'adv_tok': 20}": {
+          "percent_harmful": 94.16666666666667,
+          "time_per_prompt": 0.05647728443145752,
+          "percent_harmful_se": 2.1484908824324624,
+          "time_per_prompt_se": 0.0010564621996628522
+        }
+      },
+    "{'defense': 'GradEC'}": {
+      "{'adv_tok': 0}": {
+        "percent_harmful": 100.0,
+        "time_per_prompt": 0.00756421685218811,
+        "percent_harmful_se": 0.0,
+        "time_per_prompt_se": 0.0026455174613421602
+      },
+      "{'adv_tok': 2}": {
+        "percent_harmful": 100.0,
+        "time_per_prompt": 0.00567790667215983,
+        "percent_harmful_se": 0.0,
+        "time_per_prompt_se": 0.0005783547906020434
+      },
+      "{'adv_tok': 4}": {
+        "percent_harmful": 99.16666666666667,
+        "time_per_prompt": 0.010998127857844035,
+        "percent_harmful_se": 0.8333333333333309,
+        "time_per_prompt_se": 0.0014618336246706
+      },
+      "{'adv_tok': 6}": {
+        "percent_harmful": 95.83333333333334,
+        "time_per_prompt": 0.022028215726216636,
+        "percent_harmful_se": 1.8318048122588675,
+        "time_per_prompt_se": 0.002564115024904793
+      },
+      "{'adv_tok': 8}": {
+        "percent_harmful": 95.83333333333334,
+        "time_per_prompt": 0.027030791838963827,
+        "percent_harmful_se": 1.8318048122588675,
+        "time_per_prompt_se": 0.002271496409439029
+      },
+      "{'adv_tok': 10}": {
+        "percent_harmful": 95.83333333333334,
+        "time_per_prompt": 0.03041615684827169,
+        "percent_harmful_se": 1.8318048122588675,
+        "time_per_prompt_se": 0.002399764529691294
+      },
+      "{'adv_tok': 12}": {
+        "percent_harmful": 90.83333333333333,
+        "time_per_prompt": 0.03856899936993917,
+        "percent_harmful_se": 2.6451777733921418,
+        "time_per_prompt_se": 0.003096592972914281
+      },
+      "{'adv_tok': 14}": {
+        "percent_harmful": 83.33333333333334,
+        "time_per_prompt": 0.05012693206469218,
+        "percent_harmful_se": 3.4163335903782817,
+        "time_per_prompt_se": 0.003975298826580164
+      },
+      "{'adv_tok': 16}": {
+        "percent_harmful": 79.16666666666666,
+        "time_per_prompt": 0.054765135049819946,
+        "percent_harmful_se": 3.7228632194706033,
+        "time_per_prompt_se": 0.004061240869750243
+      },
+      "{'adv_tok': 18}": {
+        "percent_harmful": 71.66666666666667,
+        "time_per_prompt": 0.06900811791419983,
+        "percent_harmful_se": 4.130797993547017,
+        "time_per_prompt_se": 0.00443810678494819
+      },
+      "{'adv_tok': 20}": {
+        "percent_harmful": 66.66666666666666,
+        "time_per_prompt": 0.0741630733013153,
+        "percent_harmful_se": 4.32135815701443,
+        "time_per_prompt_se": 0.004577315156784446
+      }
+    },
+    "{'defense': 'Undefended'}": {
+        "{'adv_tok': 0}": {
+          "percent_harmful": 100.0,
+          "time_per_prompt": 0.006686258316040039,
+          "percent_harmful_se": 0.0,
+          "time_per_prompt_se": 0.002512527966449578
+        },
+        "{'adv_tok': 2}": {
+          "percent_harmful": 98.33333333333333,
+          "time_per_prompt": 0.004124383131663005,
+          "percent_harmful_se": 1.173549127087633,
+          "time_per_prompt_se": 1.699766524520249e-05
+        },
+        "{'adv_tok': 4}": {
+          "percent_harmful": 78.33333333333333,
+          "time_per_prompt": 0.004237864414850871,
+          "percent_harmful_se": 3.7765555226042675,
+          "time_per_prompt_se": 1.875259326581264e-05
+        },
+        "{'adv_tok': 6}": {
+          "percent_harmful": 37.5,
+          "time_per_prompt": 0.004339927434921264,
+          "percent_harmful_se": 4.437947515604539,
+          "time_per_prompt_se": 1.825905869880076e-05
+        },
+        "{'adv_tok': 8}": {
+          "percent_harmful": 7.5,
+          "time_per_prompt": 0.004437293608983358,
+          "percent_harmful_se": 2.4145044901124346,
+          "time_per_prompt_se": 1.8276807478424866e-05
+        },
+        "{'adv_tok': 10}": {
+          "percent_harmful": 2.5,
+          "time_per_prompt": 0.004708276192347208,
+          "percent_harmful_se": 1.431195069769,
+          "time_per_prompt_se": 9.447363617952973e-05
+        },
+        "{'adv_tok': 12}": {
+          "percent_harmful": 0.0,
+          "time_per_prompt": 0.004675716161727905,
+          "percent_harmful_se": 0.0,
+          "time_per_prompt_se": 1.824151050788433e-05
+        },
+        "{'adv_tok': 14}": {
+          "percent_harmful": 0.0,
+          "time_per_prompt": 0.004791078964869181,
+          "percent_harmful_se": 0.0,
+          "time_per_prompt_se": 1.7057051458292505e-05
+        },
+        "{'adv_tok': 16}": {
+          "percent_harmful": 0.0,
+          "time_per_prompt": 0.004937400420506795,
+          "percent_harmful_se": 0.0,
+          "time_per_prompt_se": 2.1506759911512802e-05
+        },
+        "{'adv_tok': 18}": {
+          "percent_harmful": 0.0,
+          "time_per_prompt": 0.005131548643112183,
+          "percent_harmful_se": 0.0,
+          "time_per_prompt_se": 0.00011064010831420012
+        },
+        "{'adv_tok': 20}": {
+          "percent_harmful": 0.0,
+          "time_per_prompt": 0.0051355083783467615,
+          "percent_harmful_se": 0.0,
+          "time_per_prompt_se": 1.731292028835892e-05
+        }
+      }
+}

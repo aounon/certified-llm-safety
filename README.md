@@ -93,7 +93,7 @@ For the DistilBERT-based filter, use:
 ```
 python main.py --num_prompts 120 --eval_type harmful --use_classifier --model_wt_path models/[model-weights-file].pt --harmful_prompts data/harmful_prompts_test.txt
 ```
-This accuracy is **100%**. See Section [Training the Safety Classifier](#training-the-safety-classifier) for training details of the classifier.
+This accuracy is **99%**. See Section [Training the Safety Classifier](#training-the-safety-classifier) for training details of the classifier.
 
 The script `jobs_harmful.sh` in `bash scripts` evaluates all the filters on harmful prompts.
 
@@ -279,4 +279,8 @@ Follow the instructions below to set up the environment for the experiments.
 7. Install `scikit-learn` (required for training safety classifiers):
     ```
     conda install -c anaconda scikit-learn
+    ```
+8. Install `seaborn`:
+    ```
+    conda install anaconda::seaborn
     ```

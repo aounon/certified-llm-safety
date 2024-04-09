@@ -6,7 +6,7 @@ import argparse, time, json, os
 
 from defenses import progress_bar
 
-def greedy_ec(prompt, model, tokenizer, num_iters=20):
+def greedy_ec(prompt, model, tokenizer, num_iters=20, output_subsequence=False):
     '''
     Implements the greedy version of the erase-and-check procedure
     At each step, the algorithm erases a token from the current prompt
@@ -37,6 +37,8 @@ def greedy_ec(prompt, model, tokenizer, num_iters=20):
     # If the prompt is initially labelled harmful, return True
     # Class 1: Safe, Class 0: Harmful
     if output_class == 0:
+        if output_subsequence:
+            return True, prompt
         return True
     
     # Otherwise, erase tokens until the prompt is labelled harmful
@@ -44,6 +46,8 @@ def greedy_ec(prompt, model, tokenizer, num_iters=20):
         # Create batch of inputs with one token erased
         tokens_batch = []
         if tokens.shape[1] < 3:     # Loop below will not work
+            if output_subsequence:
+                return False, prompt
             return False
         for i in range(1, tokens.shape[1]-1):       # Do not erase special tokens [CLS] and [SEP]
             erased_sequence = torch.cat((tokens[:, :i], tokens[:, i+1:]), dim=1)
@@ -65,11 +69,15 @@ def greedy_ec(prompt, model, tokenizer, num_iters=20):
             # print("Original prompt:\t", prompt)
             # print("Erased prompt:\t", decoded_prompt)
             # input("Press Enter to continue...")
+            if output_subsequence:
+                return True, tokenizer.decode(tokens_batch[max_index], skip_special_tokens=True)
             return True
         
         # Otherwise, update tokens
         tokens = tokens_batch[max_index].unsqueeze(0)
 
+    if output_subsequence:
+        return False, prompt
     return False
 
 if __name__ == '__main__':
