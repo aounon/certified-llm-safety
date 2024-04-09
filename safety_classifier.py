@@ -1,31 +1,36 @@
-# import re
+# The following code is adapted from:
+# 1. HuggingFace tutorial on using DistillBert https://huggingface.co/distilbert/distilbert-base-uncased
+# 2. Huggingface tutorial on training transformers for sequence classification here: https://huggingface.co/docs/transformers/tasks/sequence_classification
+
+### Importing libraries
+import argparse
 import warnings
-import pandas as pd
 import numpy as np
+import pandas as pd
 warnings.filterwarnings("ignore")
 
 import torch
 import torch.nn as nn
+from transformers import AdamW
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report
 from transformers import DistilBertTokenizer, DistilBertForSequenceClassification
-from transformers import AdamW
 from torch.utils.data import TensorDataset, DataLoader, WeightedRandomSampler, SequentialSampler
 
-import argparse
+# specify the available devices
+device = torch.device("cuda" if torch.cuda.is_available() else "CPU")
 
-# specify GPU
-# device = 'cpu'  # torch.device("cuda")
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-def read_text(filename):
+## Function for reading the given file
+def read_text(filename):	
   with open(filename, "r") as f:
     lines = f.readlines()
     lines = [l.strip() for l in lines]
   return pd.DataFrame(lines)
 
+# Set seed
 seed = 912
 
+## Parser for setting input values
 parser = argparse.ArgumentParser(description='Adversarial masks for the safety classifier.')
 parser.add_argument('--safe_train', type=str, default='data/safe_prompts_train_insertion_erased.txt', help='File containing safe prompts for training')
 parser.add_argument('--harmful_train', type=str, default='data/harmful_prompts_train.txt', help='File containing harmful prompts for training')
@@ -35,16 +40,14 @@ parser.add_argument('--save_path', type=str, default='models/distilbert_insertio
 
 args = parser.parse_args()
 
-# Train safety classifier
-
-# Load prompts
+# Load safe and harmful prompts and create the dataset for training classifier
 # Class 1: Safe, Class 0: Harmful
 safe_prompt_train = read_text(args.safe_train)
 harm_prompt_train = read_text(args.harmful_train)
 prompt_data_train = pd.concat([safe_prompt_train, harm_prompt_train], ignore_index=True)
 prompt_data_train['Y'] = pd.Series(np.concatenate([np.ones(safe_prompt_train.shape[0]), np.zeros(harm_prompt_train.shape[0])])).astype(int)
 
-# split train dataset into train and validation sets
+# Split train dataset into train and validation sets
 train_text, val_text, train_labels, val_labels = train_test_split(prompt_data_train[0], 
 								prompt_data_train['Y'], 
 								random_state=seed, 
@@ -77,18 +80,18 @@ tokens_val = tokenizer.batch_encode_plus(
     truncation=True
 )
 
-## convert lists to tensors
+## Convert lists to tensors for train split
 train_seq = torch.tensor(tokens_train['input_ids'])
 train_mask = torch.tensor(tokens_train['attention_mask'])
 train_y = torch.tensor(train_labels.tolist())
 sample_weights = torch.tensor([1/count[i] for i in train_labels])
 
-# import pdb; pdb.set_trace()
+## Convert lists to tensors for validation split
 val_seq = torch.tensor(tokens_val['input_ids'])
 val_mask = torch.tensor(tokens_val['attention_mask'])
 val_y = torch.tensor(val_labels.tolist())
 
-#define a batch size
+# define the batch size
 batch_size = 32
 
 # wrap tensors
@@ -98,7 +101,7 @@ train_data = TensorDataset(train_seq, train_mask, train_y)
 # train_sampler = RandomSampler(train_data)
 train_sampler = WeightedRandomSampler(sample_weights, len(train_data), replacement=True)
 
-# dataLoader for train set
+# dataLoader for the train set
 train_dataloader = DataLoader(train_data, sampler=train_sampler, batch_size=batch_size)
 
 # wrap tensors
