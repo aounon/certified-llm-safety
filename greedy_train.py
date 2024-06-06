@@ -11,7 +11,7 @@ import argparse
 
 from greedy_ec import greedy_ec
 
-def batch_greedy_ec_train(batch, labels, model, tokenizer, num_iters):
+def batch_greedy_ec_train(batch, labels, model, tokenizer, num_iters, threshold):
     '''
     For every safe prompt in the batch, append the subsequence 
     that the greedy algorithm identifies as harmful to the batch. If no subsequences are harmful,
@@ -23,7 +23,10 @@ def batch_greedy_ec_train(batch, labels, model, tokenizer, num_iters):
         prompt = batch[i]
         # Check if the prompt is safe
         if labels[i] == 1:
-            harmful, subsequence = greedy_ec(prompt, model, tokenizer, num_iters, output_subsequence=True)
+            harmful, subsequence = greedy_ec(prompt, model, tokenizer,
+                                             num_iters=num_iters,
+                                             threshold=threshold,
+                                             output_subsequence=True)
             if harmful:
                 # print(f"{i}: {subsequence}")
                 batch.append(subsequence)
@@ -78,7 +81,9 @@ def batch_greedy_ec_test(batch, labels, model, tokenizer, num_iters):
     for i, prompt in enumerate(batch):
         # Check if the prompt is safe
         if labels[i] == 1:
-            harmful, subsequence = greedy_ec(prompt, model, tokenizer, num_iters, output_subsequence=True)
+            harmful, subsequence = greedy_ec(prompt, model, tokenizer,
+                                             num_iters=num_iters,
+                                             output_subsequence=True)
             if harmful:
                 # print(f"{i}: {subsequence}")
                 new_batch.append(subsequence)
@@ -118,6 +123,7 @@ train_iter = 15
 test_iter = 9
 num_epochs = 30
 num_runs = 10
+train_threshold = 0.7
 
 # Read the data
 safe_train = read_text(args.safe_train)
@@ -176,7 +182,7 @@ for run in range(num_runs):
 
             # Preprocess the batch
             # batch_texts = batch_greedy_ec_test(batch_texts, batch_labels, model, tokenizer, train_iter)
-            batch_texts, batch_labels = batch_greedy_ec_train(batch_texts, batch_labels, model, tokenizer, train_iter)
+            batch_texts, batch_labels = batch_greedy_ec_train(batch_texts, batch_labels, model, tokenizer, train_iter, train_threshold)
             # print(f"Batch size: {len(batch_texts)}")
             # print(f"Labels: {len(batch_labels)}")
 
@@ -211,6 +217,7 @@ for run in range(num_runs):
 
             # Preprocess the batch
             batch_texts = batch_greedy_ec_test(batch_texts, batch_labels, model, tokenizer, test_iter)
+            # batch_texts, batch_labels = batch_greedy_ec_train(batch_texts, batch_labels, model, tokenizer, train_iter, train_threshold)
 
             # Tokenize the batch
             inputs = tokenizer(batch_texts, padding=True, truncation=True, return_tensors='pt')

@@ -6,7 +6,7 @@ import argparse, time, json, os
 
 from defenses import progress_bar
 
-def greedy_ec(prompt, model, tokenizer, num_iters=20, output_subsequence=False):
+def greedy_ec(prompt, model, tokenizer, num_iters=20, threshold=0.5, output_subsequence=False):
     '''
     Implements the greedy version of the erase-and-check procedure
     At each step, the algorithm erases a token from the current prompt
@@ -62,8 +62,8 @@ def greedy_ec(prompt, model, tokenizer, num_iters=20, output_subsequence=False):
         max_index = output_softmax[:, 0].argmax().item()
         max_score = output_softmax[max_index, 0].item()
 
-        # If the max score is greater than 0.5, return True
-        if max_score > 0.5:
+        # If the max score is greater than threshold, return True
+        if max_score > threshold:
             # Decode the prompt and print it
             # decoded_prompt = tokenizer.decode(tokens_batch[max_index])
             # print("Original prompt:\t", prompt)

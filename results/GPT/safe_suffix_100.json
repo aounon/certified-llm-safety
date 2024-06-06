@@ -1,0 +1,26 @@
+{
+  "{'max_erase': 0}": {
+    "percent_safe": 99.0,
+    "time_per_prompt": 0.3924730324745178,
+    "percent_safe_se": 1.0,
+    "time_per_prompt_se": 0.018768328428268432
+  },
+  "{'max_erase': 10}": {
+    "percent_safe": 87.0,
+    "time_per_prompt": 3.381538007259369,
+    "percent_safe_se": 3.3799766898963113,
+    "time_per_prompt_se": 0.0950470209121704
+  },
+  "{'max_erase': 20}": {
+    "percent_safe": 86.0,
+    "time_per_prompt": 3.567784788608551,
+    "percent_safe_se": 3.48735088019777,
+    "time_per_prompt_se": 0.13065601587295533
+  },
+  "{'max_erase': 30}": {
+    "percent_safe": 91.0,
+    "time_per_prompt": 3.6840872406959533,
+    "percent_safe_se": 2.8762349126466136,
+    "time_per_prompt_se": 0.15832923650741576
+  }
+}

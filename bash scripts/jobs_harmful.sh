@@ -1,7 +1,12 @@
 #!/bin/sh
 
-# Llama 2
-python main.py --num_prompts 520 --eval_type harmful --harmful_prompts data/harmful_prompts.txt
+# LLM based filters
+# python main.py --num_prompts 520 --eval_type harmful --harmful_prompts data/harmful_prompts.txt --llm_name 'GPT-3.5' --results_dir 'results/GPT'
+# python main.py --num_prompts 520 --eval_type harmful --harmful_prompts data/harmful_prompts.txt --llm_name 'Llama-3' --results_dir 'results/Llama-3'
+# python main.py --num_prompts 520 --eval_type harmful --harmful_prompts data/harmful_prompts.txt --llm_name 'Llama-2-13B' --results_dir 'results/Llama-2-13B'
+python main.py --num_prompts 520 --eval_type harmful --harmful_prompts data/harmful_prompts.txt --llm_name 'Llama-2' --results_dir 'results/Llama-2'
+
+exit
 
 # DistilBERT
 for mode in "suffix" "insertion" "infusion"

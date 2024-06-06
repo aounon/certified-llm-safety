@@ -1,0 +1,8 @@
+{
+  "{'max_erase': 20}": {
+    "percent_safe": 100.0,
+    "time_per_prompt": 4.541749358177185,
+    "percent_safe_se": 0.0,
+    "time_per_prompt_se": 0.5785758362614221
+  }
+}

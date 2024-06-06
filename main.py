@@ -5,6 +5,7 @@ from models import *
 import os
 import time
 import json
+import ast
 import random
 import argparse
 from transformers import DistilBertTokenizer, DistilBertForSequenceClassification
@@ -14,6 +15,8 @@ from defenses import is_harmful
 from defenses import progress_bar, erase_and_check, erase_and_check_smoothing
 from grad_ec import grad_ec
 from greedy_ec import greedy_ec
+
+from openai import OpenAI
 
 parser = argparse.ArgumentParser(description='Check safety of prompts.')
 parser.add_argument('--num_prompts', type=int, default=2,
@@ -28,6 +31,8 @@ parser.add_argument('--num_adv', type=int, default=2,
                     help='number of adversarial prompts to defend against (insertion mode only)')
 parser.add_argument('--safe_prompts', type=str, default="data/safe_prompts.txt")
 parser.add_argument('--harmful_prompts', type=str, default="data/harmful_prompts.txt")
+parser.add_argument('--attack', type=str, default="gcg", choices=["gcg", "autodan"],
+                    help='attack to defend against')
 
 # use adversarial prompt or not
 parser.add_argument('--append-adv', action='store_true',
@@ -46,6 +51,8 @@ parser.add_argument('--use_classifier', action='store_true',
                     help='flag for using a custom trained safety filter')
 parser.add_argument('--model_wt_path', type=str, default='models/distillbert_saved_weights.pt',
                     help='path to the model weights of the trained safety filter')
+parser.add_argument('--llm_name', type=str, default="Llama-2", choices=["Llama-2", "Llama-2-13B", "Llama-3", "GPT-3.5"],
+                    help='name of the LLM model (used only when use_classifier=False)')
 
 # -- GradEC arguments -- #
 parser.add_argument('--num_iters', type=int, default=10,
@@ -66,8 +73,12 @@ harmful_prompts_file = args.harmful_prompts
 randomize = args.randomize
 sampling_ratio = args.sampling_ratio
 num_iters = args.num_iters
+llm_name = args.llm_name
+attack = args.attack
 
 print("\n* * * * * * Experiment Details * * * * * *")
+if torch.cuda.is_available():
+    print("Device: " + torch.cuda.get_device_name(0))
 print("Evaluation type: " + eval_type)
 print("Number of prompts to check: " + str(num_prompts))
 print("Append adversarial prompts? " + str(args.append_adv))
@@ -77,6 +88,8 @@ if randomize:
 
 if use_classifier:
     print("Using custom safety filter. Model weights path: " + model_wt_path)
+else:
+    print("Using LLM model: " + llm_name)
 if eval_type == "safe" or eval_type == "empirical":
     print("Mode: " + mode)
     print("Maximum tokens to erase: " + str(max_erase))
@@ -86,6 +99,8 @@ elif eval_type == "smoothing":
     print("Maximum tokens to erase: " + str(max_erase))
 elif eval_type == "grad_ec" or eval_type == "greedy_ec":
     print("Number of iterations: " + str(num_iters))
+if eval_type == "empirical" or eval_type == "grad_ec" or eval_type == "greedy_ec":
+    print("Attack algorithm: " + attack)
 print("* * * * * * * * * * ** * * * * * * * * * *\n", flush=True)
 
 # Create results directory if it doesn't exist
@@ -129,20 +144,62 @@ if use_classifier:
     pipeline = transformers.pipeline('text-classification', model=model, tokenizer=tokenizer, device=0)
 
 else:
-    # Load model and tokenizer
-    model = "meta-llama/Llama-2-7b-chat-hf"
-    # commit_id = "main"        # to use the latest version
-    commit_id = "08751db2aca9bf2f7f80d2e516117a53d7450235"      # to reproduce the results in our paper
+    # Using LLM for safety filter
+    if llm_name == "Llama-2":
+        # Load model and tokenizer
+        model = "meta-llama/Llama-2-7b-chat-hf"
+        # commit_id = "main"        # to use the latest version
+        commit_id = "08751db2aca9bf2f7f80d2e516117a53d7450235"      # to reproduce the results in our paper
 
-    print(f'Loading model {model}...')
-    tokenizer = AutoTokenizer.from_pretrained(model, revision=commit_id)
-    pipeline = transformers.pipeline(
-        "text-generation",
-        model=model,
-        torch_dtype=torch.float16,
-        device_map="auto",
-        revision=commit_id
-    )
+        print(f'Loading model {model}...')
+        tokenizer = AutoTokenizer.from_pretrained(model, revision=commit_id)
+        pipeline = transformers.pipeline(
+            "text-generation",
+            model=model,
+            torch_dtype=torch.float16,
+            device_map="auto",
+            revision=commit_id
+        )
+
+    elif llm_name == "Llama-2-13B":
+        # Load model and tokenizer
+        model = "meta-llama/Llama-2-13b-chat-hf"
+
+        print(f'Loading model {model}...')
+        tokenizer = AutoTokenizer.from_pretrained(model)
+        pipeline = transformers.pipeline(
+            "text-generation",
+            model=model,
+            torch_dtype=torch.float16,
+            device_map="auto")
+
+    elif llm_name == "Llama-3":
+        # Load model and tokenizer
+        model = "meta-llama/Meta-Llama-3-8B-Instruct"
+
+        print(f'Loading model {model}...')
+        tokenizer = AutoTokenizer.from_pretrained(model)
+        pipeline = transformers.pipeline(
+            "text-generation",
+            model=model,
+            torch_dtype=torch.float16,
+            device_map="auto"
+        )
+
+    elif llm_name == "GPT-3.5":
+        with open('key.txt', 'r') as file:
+            key = file.read()
+
+        pipeline = OpenAI(api_key=key)
+
+        # Tokenizer
+        model = "meta-llama/Llama-2-7b-chat-hf"
+        # commit_id = "main"        # to use the latest version
+        commit_id = "08751db2aca9bf2f7f80d2e516117a53d7450235"      # to reproduce the results in our paper
+        tokenizer = AutoTokenizer.from_pretrained(model, revision=commit_id)
+
+        # tokenizer = AutoTokenizer.from_pretrained("gpt2")
+
 
 # Suffix to fool LLama safety filter from Zou et al's code
 # length = 20 tokens 
@@ -169,7 +226,7 @@ if eval_type == "safe":
         prompt = prompts[i]
         if args.append_adv: prompt += adv_suffix
         harmful = erase_and_check(prompt, pipeline, tokenizer, max_erase=max_erase, num_adv=num_adv, randomized=randomize,
-                                  prompt_sampling_ratio=sampling_ratio, mode=mode)
+                                  prompt_sampling_ratio=sampling_ratio, mode=mode, llm_name=llm_name)
         
         if not harmful:
             count_safe += 1
@@ -201,13 +258,26 @@ if eval_type == "safe":
 elif eval_type == "empirical":
     # Empirical performance on adversarial prompts
     emp_results = {}
-    for adv_tok in range(0, 21, 2):
-        adv_prompts_file = "data/adversarial_prompts_t_" + str(adv_tok) + ".txt"
+    if attack == "autodan":
+        range_limit = 1
+    else:
+        range_limit = 21
+    for adv_tok in range(0, range_limit, 2):
+        if attack == "autodan":
+            adv_prompts_file = "data/AutoDAN_prompts.txt"
+        else:
+            adv_prompts_file = "data/adversarial_prompts_t_" + str(adv_tok) + ".txt"
         print("Evaluating on adversarial prompts from: " + adv_prompts_file)
         # Load prompts from text file
         with open(adv_prompts_file, "r") as f:
             prompts = f.readlines()
             prompts = [prompt.strip() for prompt in prompts]
+            if attack == "autodan":
+                prompts = [ast.literal_eval(prompt) for prompt in prompts]
+
+        # for prompt in prompts[:5]:
+        #     print(prompt)
+        # exit()
 
         # Sample a random subset of the prompts
         prompts = random.sample(prompts, num_prompts)
@@ -217,10 +287,16 @@ elif eval_type == "empirical":
         start_time = time.time()
         time_list = []
         elapsed_time = 0
+        
+        if attack == "autodan":
+            max_llm_sequence_len = 300
+        else:
+            max_llm_sequence_len = 200
+
         for i in range(num_prompts):
             prompt = prompts[i]
             harmful = erase_and_check(prompt, pipeline, tokenizer, max_erase=max_erase, num_adv=num_adv, randomized=randomize,
-                                    prompt_sampling_ratio=sampling_ratio, mode=mode)
+                                    prompt_sampling_ratio=sampling_ratio, mode=mode, max_llm_sequence_len=max_llm_sequence_len)
             
             if harmful:
                 count_harmful += 1
@@ -311,13 +387,25 @@ elif eval_type == "greedy_ec":
         exit()
 
     emp_results = {}
-    for adv_tok in range(0, 21, 2):
-        adv_prompts_file = "data/adversarial_prompts_t_" + str(adv_tok) + ".txt"
+
+    if attack == "autodan":
+        range_limit = 1
+    else:
+        range_limit = 21
+
+    for adv_tok in range(0, range_limit, 2):
+        if attack == "autodan":
+            adv_prompts_file = "data/AutoDAN_prompts.txt"
+        else:
+            adv_prompts_file = "data/adversarial_prompts_t_" + str(adv_tok) + ".txt"
+
         print("Evaluating on adversarial prompts from: " + adv_prompts_file)
         # Load prompts from text file
         with open(adv_prompts_file, "r") as f:
             prompts = f.readlines()
             prompts = [prompt.strip() for prompt in prompts]
+            if attack == "autodan":
+                prompts = [ast.literal_eval(prompt) for prompt in prompts]
 
         # Sample a random subset of the prompts
         prompts = random.sample(prompts, num_prompts)
@@ -417,7 +505,7 @@ elif eval_type == "harmful":
         batch = prompts[i:i+batch_size]
         # Evaluating the safety filter gives us certifed safety guarantees on
         # erase_and_check for harmful prompts (from construction).
-        harmful = is_harmful(batch, pipeline, tokenizer)
+        harmful = is_harmful(batch, pipeline, tokenizer, llm_name=llm_name)
         count_harmful += sum(harmful)
 
         current_time = time.time()

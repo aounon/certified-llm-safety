@@ -1,0 +1,10 @@
+{
+  "{'max_erase': 0}": {
+    "{'adv_tok': 0}": {
+      "percent_harmful": 87.3076923076923,
+      "time_per_prompt": 1.7028719911208519,
+      "percent_harmful_se": 2.0684578168423453,
+      "time_per_prompt_se": 0.03588051263302635
+    }
+  }
+}
