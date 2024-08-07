@@ -2,7 +2,7 @@ import torch
 from transformers import DistilBertTokenizer, DistilBertForSequenceClassification
 from termcolor import colored
 import argparse
-
+import os
 
 def gcg_suffix(input, model, tokenizer, word_embeddings, embedding_matrix,
                num_adv=10, num_iters=50, top_k=50, batch_size=500):
@@ -98,13 +98,23 @@ if __name__ == '__main__':
     parser.add_argument('--num_adv', type=int, default=10, help='Number of adversarial tokens to append')
     parser.add_argument('--prompts_file', type=str, default='data/harmful_prompts_test.txt', help='File containing prompts')
     parser.add_argument('--model_wt_path', type=str, default='models/distilbert_suffix.pt', help='Path to model weights')
+    parser.add_argument('--num_iters', type=int, default=50, help='Number of iterations of GCG')
+    parser.add_argument('--save_dir', type=str, default='data', help='Directory to save adversarial prompts')
 
     args = parser.parse_args()
 
+    model_wt_path = args.model_wt_path
+    num_adv = args.num_adv
+    num_iters = args.num_iters
+    prompts_file = args.prompts_file
+    save_dir = args.save_dir
+
     print("\n* * * * * Experiment Settings * * * * *")
-    print("Adversarial tokens: " + str(args.num_adv))
-    print("Prompts file: " + args.prompts_file)
-    print("Model weights path: " + args.model_wt_path)
+    print("Adversarial tokens: " + str(num_adv))
+    print("Number of iterations: " + str(num_iters))
+    print("Prompts file: " + prompts_file)
+    print("Model weights path: " + model_wt_path)
+    print("Save directory: " + save_dir)
     print("* * * * * * * * * * * * * * * * * * * *\n", flush=True)
 
     # Set device
@@ -115,13 +125,9 @@ if __name__ == '__main__':
     model = DistilBertForSequenceClassification.from_pretrained('distilbert-base-uncased')
 
     # Load model weights
-    model_wt_path = args.model_wt_path
     model.load_state_dict(torch.load(model_wt_path))
     model.to(device)
     model.eval()
-
-    num_adv = args.num_adv
-    prompts_file = args.prompts_file
 
     # Load prompts
     prompts = []
@@ -131,14 +137,18 @@ if __name__ == '__main__':
 
     print("Loaded " + str(len(prompts)) + " prompts.", flush=True)
 
+    # Create save directory if it doesn't exist
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
+
     # Open file to write prompts
-    f = open('data/adversarial_prompts_t_' + str(num_adv) + '.txt', 'w')
+    f = open(f'{save_dir}/adversarial_prompts_t_' + str(num_adv) + '.txt', 'w')
     for input in prompts:
         # print("ORG PROMPT: " + input)
 
         adv_prompt = gcg_suffix(input, model, tokenizer, model.distilbert.embeddings.word_embeddings,
                                 model.distilbert.embeddings.word_embeddings.weight,
-                                num_adv=num_adv)
+                                num_adv=num_adv, num_iters=num_iters)
 
         
         # print("ADV PROMPT: " + adv_prompt)

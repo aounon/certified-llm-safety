@@ -1,6 +1,5 @@
-# Script to train a safety classifier on the safety dataset.
-
 #!/bin/bash
+# Script to train a safety classifier on the safety dataset.
 
 for mode in "suffix" "insertion" "infusion"
 do
