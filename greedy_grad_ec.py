@@ -1,42 +1,12 @@
-## Erase and Check via approximate L0 optimization
-## argmax_{mask} loss(prompt \odot mask) s.t. mak has least possible sparsity 
+# Implements the greedy version of the erase-and-check procedure
 
 import torch
 from transformers import DistilBertTokenizer, DistilBertForSequenceClassification
 import argparse, time, json, os
-import math
 
 from defenses import progress_bar
 
-def is_harmful(prompt, model, tokenizer, 
-               num_iters=50, init_temp=0.5, reg_const=0.1):
-    
-    """
-    Wrap around the adversarial masking procedure as a "is_harmful" function
-    """
-    
-    tokens = torch.tensor(tokenizer.encode(prompt)).unsqueeze(0).to(device)
-    model_output = model(tokens)
-    output_class = model_output[0].argmax().item()
-    if output_class == 0:
-        # if prompt is initially labelled harmful
-        # return harmful
-        return True
-    else:
-        # if prompt is initially labelled safe
-        # apply adversarial masking to find it can be 
-        # converted to be labelled harmful
-
-        masked_prompt = grad_ec(prompt, model, tokenizer,
-                        num_iters=num_iters, init_temp=init_temp, reg_const=reg_const)
-    
-        tokens = torch.tensor(tokenizer.encode(masked_prompt)).unsqueeze(0).to(device)
-        model_output = model(tokens)
-        #print("Masked Prediction: " + ("safe" if model_output[0].argmax().item() == 1 else "harmful"))
-        output_class = model_output[0].argmax().item()
-        return (output_class == 0)
-
-def grad_ec(prompt, model, tokenizer, word_embeddings, num_iters=50):
+def grad_ec_subroutine(tokens, model, word_embeddings, device, num_iters=10):
     """
     This function implements GradEC -- a gradient based approximation of the erase-and-check procedure.
     It optimizes a mask over the input prompt to erase tokens and check if the resulting
@@ -44,7 +14,7 @@ def grad_ec(prompt, model, tokenizer, word_embeddings, num_iters=50):
     returns the erased prompt.
 
     Args:
-        prompt: Input prompt
+        tokens: Input token
         model: Safety classifier
         tokenizer: Tokenizer for the safety classifier
         word_embeddings: Embedding layer of the safety classifier
@@ -53,11 +23,6 @@ def grad_ec(prompt, model, tokenizer, word_embeddings, num_iters=50):
         harmful: Whether the input prompt is harmful or not
         masked_prompt: input prompt with some tokens masked out 
     """
-    # Set device
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
-    # Initialize adversarial sequence and convert to tokens
-    tokens = torch.tensor(tokenizer.encode(prompt)).unsqueeze(0).to(device)
 
     # Initialize to all zeros
     mask_logits = torch.ones_like(tokens).float()
@@ -70,18 +35,6 @@ def grad_ec(prompt, model, tokenizer, word_embeddings, num_iters=50):
 
         mask_sigmoid = torch.sigmoid(mask_logits)
 
-        # Erased prompt
-        binary_mask = (mask_sigmoid >= 0.5).long()
-        # binary_mask = (mask_sigmoid >= 0.5).float()
-        masked_tokens = binary_mask * tokens
-        # masked_tokens = torch.round(binary_mask * tokens).long()
-        masked_prompt = tokenizer.decode((masked_tokens)[0][1:-1])
-
-        # If erased prompt is harmful, return True
-        model_output = model(torch.tensor(tokenizer.encode(masked_prompt)).unsqueeze(0).to(device)) # Evaluates model on erased prompt
-        if model_output.logits[0].argmax().item() == 0:
-            return True, masked_prompt
-
         embeddings = word_embeddings(tokens)
         embeddings = mask_sigmoid.unsqueeze(2) * embeddings +  (1 -  mask_sigmoid.unsqueeze(2)) * word_embeddings(0 * tokens)
         
@@ -92,28 +45,81 @@ def grad_ec(prompt, model, tokenizer, word_embeddings, num_iters=50):
         loss.backward() 
         optimizer.step()
 
-    mask_sigmoid = torch.sigmoid(mask_logits)
-    # binary_mask = (mask_sigmoid >= 0.5).float()
-    # masked_tokens = torch.round(binary_mask * tokens).long()
-    binary_mask = (mask_sigmoid >= 0.5).long()
-    masked_tokens = binary_mask * tokens
-    masked_prompt = tokenizer.decode((masked_tokens)[0][1:-1])
-   
-    # If erased prompt is harmful, return True
-    model_output = model(torch.tensor(tokenizer.encode(masked_prompt)).unsqueeze(0).to(device)) # Evaluates model on erased prompt
-    if model_output.logits[0].argmax().item() == 0:
-        return True, masked_prompt
-    else:
-        return False, masked_prompt
+    erase_index = mask_sigmoid.argmin()
+    return torch.cat((tokens[:, :erase_index], tokens[:, erase_index+1:]), dim=1)
 
+def greedy_grad_ec(prompt, model, tokenizer, word_embeddings,
+                   num_iters=20, output_subsequence=False):
+    '''
+    Implements the greedy version of the erase-and-check procedure using gradient-based 
+    optimization. At each step, the algorithm erases a token from the current prompt
+    such that the softmax score for the harmful class is maximized, identified via optimization.
+    It repeats this process until the safety classifier labels the prompt as harmful. If the
+    model does not label the prompt as harmful, the algorithm declares
+    the original prompt as safe.
+
+    Args:
+        prompt: Input prompt (string)
+        model: Safety classifier
+        tokenizer: Tokenizer for the safety classifier
+        num_iters: Number of iterations
+
+    Returns:
+        True if the prompt is harmful, False otherwise
+    '''
+
+    device = model.device
+
+    # Tokenize prompt
+    tokens = torch.tensor(tokenizer.encode(prompt)).unsqueeze(0).to(device)
+
+    # Get initial model output
+    model_output = model(tokens)
+    output_class = model_output[0].argmax().item()
+
+    # If the prompt is initially labelled harmful, return True
+    # Class 1: Safe, Class 0: Harmful
+    if output_class == 0:
+        if output_subsequence:
+            return True, prompt
+        return True
+    
+    # Otherwise, erase tokens until the prompt is labelled harmful
+    for _ in range(num_iters):
+        if tokens.shape[1] < 3:     # Loop below will not work
+            if output_subsequence:
+                return False, prompt
+            return False
+
+        erased_subsequence = grad_ec_subroutine(tokens, model, word_embeddings, device=device, num_iters=2) 
+        model_output = model(erased_subsequence)
+        output_class = model_output[0].argmax().item()
+
+        # If the max score is greater than threshold, return True
+        if output_class == 0:
+            # Decode the prompt and print it
+            # decoded_prompt = tokenizer.decode(tokens_batch[max_index])
+            # print("Original prompt:\t", prompt)
+            # print("Erased prompt:\t", decoded_prompt)
+            # input("Press Enter to continue...")
+            if output_subsequence:
+                return True, tokenizer.decode(erased_subsequence, skip_special_tokens=True)
+            return True
+        
+        # Otherwise, update tokens
+        tokens = erased_subsequence
+
+    if output_subsequence:
+        return False, prompt
+    return False
 
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Adversarial masks for the safety classifier.')
     parser.add_argument('--prompts_file', type=str, default='data/adversarial_prompts_t_20.txt', help='File containing prompts')
-    parser.add_argument('--num_iters', type=int, default=50, help='Number of iterations')
+    parser.add_argument('--num_iters', type=int, default=20, help='Number of iterations')
     parser.add_argument('--model_wt_path', type=str, default='models/distilbert_suffix.pt', help='Path to model weights')
-    parser.add_argument('--results_file', type=str, default='results/grad_ec_results.json', help='Path to results file')
+    parser.add_argument('--results_file', type=str, default='results/greedy_ec_results.json', help='File to store results')
 
     args = parser.parse_args()
 
@@ -135,11 +141,11 @@ if __name__ == '__main__':
     num_iters = args.num_iters
     results_file = args.results_file
 
-    print('\n* * * * * Experiment Parameters * * * * *')
-    print('Prompts file: ' + prompts_file)
-    print('Number of iterations: ' + str(num_iters))
-    print('Model weights: ' + model_wt_path)
-    print('* * * * * * * * * * * * * * * * * * * * *\n')
+    print('\n* * * * * * * Experiment Details * * * * * * *')
+    print('Prompts file:\t', prompts_file)
+    print('Iterations:\t', str(num_iters))
+    print('Model weights:\t', model_wt_path)
+    print('* * * * * * * * * * * ** * * * * * * * * * * *\n')
 
     # Load prompts
     prompts = []
@@ -161,16 +167,11 @@ if __name__ == '__main__':
         results_dict = json.load(f)
 
     for num_done, input_prompt in enumerate(prompts):
-        
-        decision, masked_prompt = grad_ec(input_prompt, model, tokenizer, model.distilbert.embeddings.word_embeddings,
-                    num_iters=num_iters)
+        decision = greedy_grad_ec(input_prompt, model, tokenizer, 
+                                  word_embeddings=model.distilbert.embeddings.word_embeddings, 
+                                  num_iters=num_iters)
         list_of_bools.append(decision)
 
-        #print("ORIGINAL PROMPT: " + input_prompt)
-        #print("Masked Prompt: " + masked_prompt)
-        #print("Prediction: " + ("harmful" if decision else "safe"))
-        #input('Press enter to continue')
-        
         percent_harmful = (sum(list_of_bools) / len(list_of_bools)) * 100.
         current_time = time.time()
         elapsed_time = current_time - start_time
@@ -184,5 +185,6 @@ if __name__ == '__main__':
 
     # Save results
     results_dict[str(dict(num_iters = num_iters))] = dict(percent_harmful = percent_harmful, time_per_prompt = time_per_prompt)
+    print("Saving results to", results_file)
     with open(results_file, 'w') as f:
         json.dump(results_dict, f, indent=2)

@@ -12,8 +12,8 @@ def read_data_from_json(json_file):
 
     plot_data = []
     for max_erase_key, adv_toks in data.items():
-        max_erase_value = json.loads(max_erase_key.replace("'", "\""))['defense']
-        # max_erase_value = json.loads(max_erase_key.replace("'", "\""))['num_iters']
+        # max_erase_value = json.loads(max_erase_key.replace("'", "\""))['defense']
+        max_erase_value = json.loads(max_erase_key.replace("'", "\""))['num_iters']
         # max_erase_value = float(json.loads(max_erase_key.replace("'", "\""))['sampling_ratio'])
         # max_erase_value = int(json.loads(max_erase_key.replace("'", "\""))['max_erase'])
         for adv_tok_key, metrics in adv_toks.items():
@@ -57,8 +57,8 @@ def plot_data(df, filename='plot.png'):
     plot.set_ylabel('Percent Harmful', fontsize=18, labelpad=10)
     plot.set_xticks(range(0, 21, 4))
     plt.tick_params(axis='both', labelsize=18)
-    plt.legend(title='Defenses', title_fontsize=14, fontsize=14, bbox_to_anchor=(0.97, 0.1), loc='lower right')
-    # plt.legend(title='# Iterations', title_fontsize=14, fontsize=14)
+    # plt.legend(title='Defenses', title_fontsize=14, fontsize=14, bbox_to_anchor=(0.97, 0.1), loc='lower right')
+    plt.legend(title='# Iterations', title_fontsize=14, fontsize=14)
     # plt.legend(title='Sampling Ratio', title_fontsize=14, fontsize=14)
     # plt.legend(title='Max Erase', title_fontsize=14, fontsize=14)
     

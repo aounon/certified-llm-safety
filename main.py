@@ -16,6 +16,7 @@ from defenses import is_harmful
 from defenses import progress_bar, erase_and_check, erase_and_check_smoothing
 from grad_ec import grad_ec
 from greedy_ec import greedy_ec
+from greedy_grad_ec import greedy_grad_ec
 
 from openai import OpenAI
 
@@ -60,7 +61,7 @@ parser.add_argument('--llm_name', type=str, default="Llama-2", choices=["Llama-2
 # -- GradEC arguments -- #
 parser.add_argument('--num_iters', type=int, default=10,
                     help='number of iterations for GradEC, GreedyEC')
-parser.add_argument('--ec_variant', type=str, default="RandEC", choices=["RandEC", "GreedyEC", "GradEC"],
+parser.add_argument('--ec_variant', type=str, default="RandEC", choices=["RandEC", "GreedyEC", "GradEC", "GreedyGradEC"],
                     help='variant of EC to evaluate for ROC')
 
 args = parser.parse_args()
@@ -511,6 +512,9 @@ elif eval_type == "roc_curve":
             elif ec_variant == "GradEC":
                 harmful, _ = grad_ec(prompt, model, tokenizer, model.distilbert.embeddings.word_embeddings,
                     num_iters=int(2*frac*max_erase))
+            elif ec_variant == "GreedyGradEC":
+                harmful = greedy_grad_ec(prompt, model, tokenizer, model.distilbert.embeddings.word_embeddings,
+                    num_iters=int(2*frac*max_erase))
             
             if harmful:
                 count_harmful += 1
@@ -542,6 +546,9 @@ elif eval_type == "roc_curve":
                 harmful = greedy_ec(prompt, model, tokenizer, num_iters=int(frac*max_erase))
             elif ec_variant == "GradEC":
                 harmful, _ = grad_ec(prompt, model, tokenizer, model.distilbert.embeddings.word_embeddings,
+                    num_iters=int(2*frac*max_erase))
+            elif ec_variant == "GreedyGradEC":
+                harmful = greedy_grad_ec(prompt, model, tokenizer, model.distilbert.embeddings.word_embeddings,
                     num_iters=int(2*frac*max_erase))
 
             if harmful:
